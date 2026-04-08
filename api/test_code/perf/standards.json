@@ -1,0 +1,50 @@
+{
+  "profiles": {
+    "health": {
+      "description": "Health or lightweight probe endpoint",
+      "levels": [
+        {
+          "name": "good",
+          "requirements": {
+            "p95MsMax": 30,
+            "p99MsMax": 60,
+            "qpsMin": 1500,
+            "errorRateMax": 0.001
+          }
+        },
+        {
+          "name": "acceptable",
+          "requirements": {
+            "p95MsMax": 80,
+            "p99MsMax": 150,
+            "qpsMin": 600,
+            "errorRateMax": 0.005
+          }
+        }
+      ]
+    },
+    "read-light": {
+      "description": "Typical authenticated read API with modest DB work",
+      "levels": [
+        {
+          "name": "good",
+          "requirements": {
+            "p95MsMax": 40,
+            "p99MsMax": 80,
+            "qpsMin": 2000,
+            "errorRateMax": 0.001
+          }
+        },
+        {
+          "name": "acceptable",
+          "requirements": {
+            "p95MsMax": 120,
+            "p99MsMax": 250,
+            "qpsMin": 800,
+            "errorRateMax": 0.005
+          }
+        }
+      ]
+    }
+  }
+}

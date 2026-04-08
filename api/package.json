@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
+    "perf": "node test/perf/run.js",
+    "perf:report": "node test/perf/run.js --report-only",
     "pm2:start": "pm2 start ecosystem.config.js",
     "pm2:stop": "pm2 stop ecosystem.config.js"
   },

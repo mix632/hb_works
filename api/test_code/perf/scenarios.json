@@ -1,0 +1,32 @@
+{
+  "defaults": {
+    "baseUrl": "http://127.0.0.1:9032",
+    "durationMs": 15000,
+    "concurrency": 50,
+    "randomizeForwardedFor": true
+  },
+  "scenarios": [
+    {
+      "name": "health-db-check",
+      "description": "Health endpoint with DB connectivity check",
+      "method": "GET",
+      "path": "/health",
+      "standardProfile": "health"
+    },
+    {
+      "name": "customer-list-read",
+      "description": "Authenticated read of customer list",
+      "method": "GET",
+      "path": "/cdp/customer/getlist?pageIndex=0&onePageCount=10",
+      "standardProfile": "read-light",
+      "auth": {
+        "type": "jwt",
+        "secret": "mamsllsla",
+        "payload": {
+          "userId": 1
+        },
+        "expiresIn": "1h"
+      }
+    }
+  ]
+}
