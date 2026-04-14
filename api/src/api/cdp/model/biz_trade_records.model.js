@@ -13,13 +13,13 @@ class biz_trade_recordsModel extends BaseModel {
       // 类型
       type: { type: sequelize.INTEGER, field: 'type', defaultValue: 0, allowNull: false },
       // 日期
-      date: { type: sequelize.DATE, field: 'date', defaultValue: util.minDate, allowNull: false },
+      date: { type: sequelize.DATE, field: 'date', defaultValue: MIN_DATE, allowNull: false },
       // 名称
       title: { type: sequelize.STRING,  field: 'title', defaultValue: '', allowNull: false },
       // 创建时间
-      created_at: { type: sequelize.DATE, field: 'created_at', defaultValue: util.minDate, allowNull: false },
+      created_at: { type: sequelize.DATE, field: 'created_at', defaultValue: MIN_DATE, allowNull: false },
       // 更新时间
-      updated_at: { type: sequelize.DATE, field: 'updated_at', defaultValue: util.minDate, allowNull: false },
+      updated_at: { type: sequelize.DATE, field: 'updated_at', defaultValue: MIN_DATE, allowNull: false },
       // 删除标记
       deleted: { type: sequelize.BOOLEAN, field: 'deleted', defaultValue: false, allowNull: false },
     }, { timestamps: false, freezeTableName: true, deletedAt: true, });

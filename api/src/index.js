@@ -57,7 +57,7 @@ async function start() {
 
   // ─── 动态加载业务模块 ────────────────────────────────────────
   const runModules = config.config.runModules ? config.config.runModules.split(',') : [];
-  const modulesDir = path.join(__dirname, 'modules');
+  const modulesDir = path.join(__dirname, 'api');
 
   for (const moduleName of runModules) {
     const modulePath = path.join(modulesDir, moduleName.trim());

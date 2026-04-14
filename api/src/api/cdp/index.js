@@ -1,5 +1,7 @@
 'use strict';
 
+const path = require('path');
+const fs = require('fs');
 const dictCache = require('../../core/dictCache');
 const userStatusRepo = require('./dal/gb_user_status.repo');
 
@@ -8,22 +10,25 @@ const userStatusRepo = require('./dal/gb_user_status.repo');
  * 自动注册所有 service 路由 + 字典缓存
  */
 async function cdpModule(app) {
-  // 注册字典表缓存
   dictCache.register('gb_user_status', userStatusRepo);
 
-  // 加载所有 service 并注册路由
-  const services = [
-    require('./services/user_status.service'),
-    require('./services/product.service'),
-    require('./services/customer.service'),
-    require('./services/trade_records.service'),
-  ];
+  const servicesDir = path.join(__dirname, 'services');
+  const files = fs.readdirSync(servicesDir).filter(f => f.endsWith('.service.js')).sort();
 
-  for (const svc of services) {
-    svc.registerRoutes(app);
+  for (const file of files) {
+    try {
+      const svc = require(path.join(servicesDir, file));
+      if (typeof svc.registerRoutes === 'function') {
+        svc.registerRoutes(app);
+        app.log.info(`  service loaded: ${file}`);
+      }
+    } catch (err) {
+      console.log(err);
+      app.log.error({ err }, `  service load failed: ${file}`);
+    }
   }
 
-  app.log.info('Module [cdp] loaded');
+  app.log.info(`Module [cdp] loaded, ${files.length} services scanned`);
 }
 
 module.exports = cdpModule;
