@@ -25,14 +25,8 @@ class TradeRecordsService extends BaseService {
     app.get(`${p}/get`, (req, reply) => this.get(req, reply));
     app.post(`${p}/delete`, (req, reply) => this.delete(req, reply));
     app.get(`${p}/getlist`, (req, reply) => this.getList(req, reply));
-    app.get(`${p}/save`, (req, reply) => {
-      if (req.model?.batchAdd) {
-        return this.batchAdd(req, reply);
-      }
-      else {
-        return this.save(req, reply);
-      }
-    });
+    app.post(`${p}/save`, (req, reply) => this.save(req, reply));
+    app.post(`${p}/batchAdd`, (req, reply) => this.batchAdd(req, reply));
   }
 
   async get(req, reply) {
@@ -128,18 +122,28 @@ class TradeRecordsService extends BaseService {
   }
   async batchAdd(req, reply) {
     const params = this._params(req);
-    let model = params.model;
-    let models = model.batchAddText.split('\n').filter(e => e).map(e => {
-      let data = e.split('-').filter(e => e);
-      return {
-        // 手工处理返回字段
-      }
-    });
-    let succeed = await this.myService.AddOrUpdateList({ models: models });
-    if (!succeed.Succeed) {
-      return succeed;
+    if (!params.model?.batchAddText) {
+      return R({ Succeed: false, Message: '批量数据不能为空' });
     }
-    return R({ Succeed: true, Message: '新增成功' });
+
+    const lines = params.model.batchAddText.split('\n').filter(e => e.trim());
+    if (!lines.length) {
+      return R({ Succeed: false, Message: '未解析到有效数据' });
+    }
+
+    const models = lines.map(line => {
+      const parts = line.split('-').filter(e => e.trim());
+      return {
+        // TODO: 根据实际字段补充映射
+      };
+    });
+
+    const result = await this.myService.Transaction(async (db) => {
+      return this.myService.AddOrUpdateList({ models, userId: params.userId, db });
+    });
+
+    if (!result.Succeed) return result;
+    return R({ Succeed: true, Message: `批量新增 ${models.length} 条成功` });
   }
 }
 
