@@ -16,6 +16,7 @@ async function cdpModule(app) {
     require('./services/user_status.service'),
     require('./services/product.service'),
     require('./services/customer.service'),
+    require('./services/trade_records.service'),
   ];
 
   for (const svc of services) {

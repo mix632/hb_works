@@ -23,22 +23,14 @@ class CustomerService extends BaseService {
   registerRoutes(app) {
     const p = this.prefix;
     app.get(`${p}/get`, (req, reply) => this.get(req, reply));
-    app.post(`${p}/save`, (req, reply) => this.save(req, reply));
     app.post(`${p}/delete`, (req, reply) => this.delete(req, reply));
     app.get(`${p}/getlist`, (req, reply) => this.getList(req, reply));
-    app.get(`${p}/save`, (req, reply) => {
-      if (req.model?.batchAdd) {
-        return this.batchAdd(req, reply);
-      }
-      else {
-        return this.save(req, reply);
-      }
-    });
+    app.post(`${p}/save`, (req, reply) => this.save(req, reply));
+    app.get(`${p}/getFields`, (req, reply) => this.getFieldsAction(req, reply));
+    app.post(`${p}/setFields`, (req, reply) => this.setFieldsAction(req, reply));
     app.get(`${p}/getproduct_idSelect2`, (req, reply) => this.getproduct_idSelect2(req, reply));
     app.get(`${p}/getrepayment_statusSelect2`, (req, reply) => this.getrepayment_statusSelect2(req, reply));
     app.get(`${p}/getstatusSelect2`, (req, reply) => this.getstatusSelect2(req, reply));
-    app.get(`${p}/getFields`, (req, reply) => this.getFieldsAction(req, reply));
-    app.post(`${p}/setFields`, (req, reply) => this.setFieldsAction(req, reply));
     app.post(`${p}/next_action`, (req, reply) => this.next_action(req, reply));
     app.get(`${p}/getSelect2`, (req, reply) => this.getSelect2Action(req, reply));
     app.get(`${p}/setValues`, (req, reply) => this.setValuesAction(req, reply));
