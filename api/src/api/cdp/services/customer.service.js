@@ -8,6 +8,7 @@ const model = require('../model/biz_customer.model');
 const dto = require('../dto/biz_customer.dto');
 const util = require('../../../utils');
 const config = require('../../../core/serverConfig');
+const serviceRegistry = require('../../../core/serviceRegistry');
 
 class CustomerService extends BaseService {
   constructor() {
@@ -25,6 +26,14 @@ class CustomerService extends BaseService {
     app.post(`${p}/save`, (req, reply) => this.save(req, reply));
     app.post(`${p}/delete`, (req, reply) => this.delete(req, reply));
     app.get(`${p}/getlist`, (req, reply) => this.getList(req, reply));
+    app.get(`${p}/save`, (req, reply) => {
+      if (req.model?.batchAdd) {
+        return this.batchAdd(req, reply);
+      }
+      else {
+        return this.save(req, reply);
+      }
+    });
     app.get(`${p}/getproduct_idSelect2`, (req, reply) => this.getproduct_idSelect2(req, reply));
     app.get(`${p}/getrepayment_statusSelect2`, (req, reply) => this.getrepayment_statusSelect2(req, reply));
     app.get(`${p}/getstatusSelect2`, (req, reply) => this.getstatusSelect2(req, reply));
@@ -45,46 +54,6 @@ class CustomerService extends BaseService {
       m = await this.myService.Get({ id: params.id, isLoadDetailed: true, userId: params.userId });
     }
     if (!m) m = this.myModel.CopyData({});
-
-    // action_data 操作记录展示
-    if (m.action_data && m.action_data.length) {
-      try {
-        const statusIds = [];
-        for (const a of m.action_data) {
-          if (a.pre_status) statusIds.push(a.pre_status);
-          if (a.next_status) statusIds.push(a.next_status);
-        }
-        const allStatus = statusIds.length ? await this.factory.biz_customer_statusRepo.GetList({ ids: [...new Set(statusIds)] }) : [];
-        // TODO: 从 sys_user 获取操作人姓名（当 ruoyi 模块迁移后启用）
-        m.action_data_show = m.action_data.map(a => {
-          const preTitle = allStatus.find(e => e.id == a.pre_status)?.title || '';
-          const nextTitle = allStatus.find(e => e.id == a.next_status)?.title || '';
-          return `${dateFormat(a.date)} 操作 ${preTitle} => ${nextTitle} ${a.descript || ''}`;
-        });
-      } catch {
-        m.action_data_show = [];
-      }
-    }
-
-    // images 预览地址
-    if (m.images && typeof m.images === 'object') {
-      const imageUrl = config.currentConfig.image_url || '';
-      m.images_preview = {};
-      for (const key of Object.keys(m.images)) {
-        if (Array.isArray(m.images[key])) {
-          m.images_preview[key] = m.images[key].map(e => ({
-            image: imageUrl ? `${imageUrl}/${e.path}` : e.path,
-            name: e.name,
-          }));
-        }
-      }
-    }
-
-    // user_data 用户提交数据展示
-    if (m.user_data && m.user_data.step_data) {
-      m.user_data_show = m.user_data.step_data.filter((e, i) => i < (m.user_data.step || 0));
-    }
-
     m = this._dtoFilter(this._datesToString(m), 'detail');
     return R({ Succeed: true, Data: m });
   }
@@ -190,6 +159,59 @@ class CustomerService extends BaseService {
 
     data.Data.Items = this._dtoFilter(data.Data.Items, 'list');
     return this._datesToString(data);
+  }
+
+  getPublicRuntimeService() {
+    return serviceRegistry.get('public.runtime');
+  }
+
+  // ─── GET /cdp/customer/public-example ──────────────────────────
+  async getPublicExample(req, reply) {
+    const params = this._params(req);
+    const publicRuntime = this.getPublicRuntimeService();
+
+    if (!publicRuntime) {
+      return R({
+        Succeed: true,
+        Message: 'public 模块未注册，已自动降级',
+        Data: {
+          serviceFound: false,
+          fallback: true,
+          availableServices: serviceRegistry.list(),
+        },
+      });
+    }
+
+    try {
+      const remoteData = await publicRuntime.ping({
+        from: 'cdp.customer',
+        userId: params.userId,
+        defaultLang: config.currentConfig.defaultLang,
+      });
+
+      return R({
+        Succeed: true,
+        Message: '调用 public.runtime 成功',
+        Data: {
+          serviceFound: true,
+          fallback: false,
+          remoteData,
+          availableServices: serviceRegistry.list(),
+        },
+      });
+    } catch (err) {
+      req.log.warn({ err }, 'public.runtime call failed');
+      return R({
+        Succeed: true,
+        Message: 'public 模块调用失败，已自动降级',
+        Data: {
+          serviceFound: true,
+          fallback: true,
+          error: err.message,
+          availableServices: serviceRegistry.list(),
+        },
+      });
+    }
   }
 
   // ─── GET /cdp/customer/getproduct_idSelect2 ───────────────────
