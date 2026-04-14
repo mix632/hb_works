@@ -58,6 +58,20 @@ class Dal {
       lt(col, val, lk = 'and')    { const k = key('p'); push(`${col} < :${k}`, lk, { [k]: val }); return this; },
       lte(col, val, lk = 'and')   { const k = key('p'); push(`${col} <= :${k}`, lk, { [k]: val }); return this; },
       in(col, vals, lk = 'and')   { const k = key('p'); push(`${col} in (:${k})`, lk, { [k]: vals }); return this; },
+      w(col, op, val, lk = 'and') {
+        const allowed = { '=':1, '!=':1, '<>':1, '>':1, '>=':1, '<':1, '<=':1, 'like':1, 'not like':1, 'in':1, 'not in':1 };
+        const norm = String(op).trim().toLowerCase();
+        if (!allowed[norm]) throw new Error(`safeWhere.w: unsupported operator "${op}"`);
+        const k = key('p');
+        if (norm === 'like' || norm === 'not like') {
+          push(`${col} ${norm} :${k}`, lk, { [k]: `%${val}%` });
+        } else if (norm === 'in' || norm === 'not in') {
+          push(`${col} ${norm} (:${k})`, lk, { [k]: val });
+        } else {
+          push(`${col} ${norm} :${k}`, lk, { [k]: val });
+        }
+        return this;
+      },
       raw(sql, p = {}, lk = 'and') { push(sql, lk, p); return this; },
       build() {
         let sql = '';
