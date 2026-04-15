@@ -11,17 +11,17 @@ class SysPostRepo extends Dal {
     super();
     this.modelType = model;
     this.tableName = 'sys_post';
-    this.defalutOrder = 'sys_post.post_id desc';
-    this.tableTitle = '职位';
+    this.defalutOrder = 'sys_post.post_sort asc';
+    this.tableTitle = '岗位';
     this.primaryKey = 'post_id';
     this.deleteKey = '';
-    this.createDate = '';
-    this.createUserId = '';
-    this.updateDate = '';
-    this.updateUserId = '';
+    this.createDate = 'create_time';
+    this.createUserId = 'create_by';
+    this.updateDate = 'update_time';
+    this.updateUserId = 'update_by';
     this.deleteDate = '';
     this.deleteUserId = '';
-    this.sortIndex = '';
+    this.sortIndex = 'post_sort';
     this.emptyPrimaryValue = 0;
     this.baseSql = `
       select sys_post.*

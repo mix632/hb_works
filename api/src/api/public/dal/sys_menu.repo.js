@@ -11,17 +11,17 @@ class SysMenuRepo extends Dal {
     super();
     this.modelType = model;
     this.tableName = 'sys_menu';
-    this.defalutOrder = 'sys_menu.menu_id desc';
-    this.tableTitle = '菜单';
+    this.defalutOrder = 'sys_menu.order_num asc';
+    this.tableTitle = '系统菜单';
     this.primaryKey = 'menu_id';
     this.deleteKey = '';
-    this.createDate = '';
-    this.createUserId = '';
-    this.updateDate = '';
-    this.updateUserId = '';
+    this.createDate = 'create_time';
+    this.createUserId = 'create_by';
+    this.updateDate = 'update_time';
+    this.updateUserId = 'update_by';
     this.deleteDate = '';
     this.deleteUserId = '';
-    this.sortIndex = '';
+    this.sortIndex = 'order_num';
     this.emptyPrimaryValue = 0;
     this.baseSql = `
       select sys_menu.*
@@ -84,6 +84,7 @@ class SysMenuRepo extends Dal {
     }
     if (searchModel.menu_id) w.eq('sys_menu.menu_id', searchModel.menu_id);
     if (searchModel.ids) w.in('sys_menu.menu_id', searchModel.ids);
+    if (searchModel.status) w.eq('sys_menu.status', searchModel.status);
     return w.build();
   }
 }

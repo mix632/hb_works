@@ -11,17 +11,17 @@ class SysDeptRepo extends Dal {
     super();
     this.modelType = model;
     this.tableName = 'sys_dept';
-    this.defalutOrder = 'sys_dept.dept_id desc';
+    this.defalutOrder = 'sys_dept.order_num asc';
     this.tableTitle = '部门';
     this.primaryKey = 'dept_id';
-    this.deleteKey = '';
-    this.createDate = '';
-    this.createUserId = '';
-    this.updateDate = '';
-    this.updateUserId = '';
+    this.deleteKey = 'del_flag';
+    this.createDate = 'create_time';
+    this.createUserId = 'create_by';
+    this.updateDate = 'update_time';
+    this.updateUserId = 'update_by';
     this.deleteDate = '';
     this.deleteUserId = '';
-    this.sortIndex = '';
+    this.sortIndex = 'order_num';
     this.emptyPrimaryValue = 0;
     this.baseSql = `
       select sys_dept.*

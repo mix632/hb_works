@@ -26,6 +26,43 @@ class FileService extends BaseService {
     app.post(`${p}/delete`, (req, reply) => this.delete(req, reply));
     app.get(`${p}/getlist`, (req, reply) => this.getList(req, reply));
     app.post(`${p}/save`, (req, reply) => this.save(req, reply));
+    app.get(`${p}/GetFilesForName`, (req, reply) => this.getFilesForName(req, reply));
+    app.post(`${p}/AddOrUpdateMulti`, (req, reply) => this.addOrUpdateMulti(req, reply));
+  }
+
+  /**
+   * 供 broker / 内部调用：按类型名 + 目标 ID 列表取附件
+   */
+  async getFilesForName(req, reply) {
+    const p = this._params(req);
+    let targetIDs = p.TargetIDs;
+    if (targetIDs != null && !Array.isArray(targetIDs)) {
+      targetIDs = String(targetIDs).split(',').map((x) => x.trim()).filter(Boolean);
+    }
+    const data = await this.myService.GetFilesForName({
+      fileType: p.fileType,
+      TargetIDs: targetIDs || [],
+      userId: p.userId,
+      filePath: p.filePath || 'upload',
+      db: p.db,
+    });
+    return R({ Succeed: true, Data: data });
+  }
+
+  /**
+   * 批量保存附件（与用户头像等场景共用）
+   */
+  async addOrUpdateMulti(req, reply) {
+    const p = this._params(req);
+    const params = p.params && typeof p.params === 'object' ? p.params : p;
+    return this.myService.AddOrUpdateMulti({
+      files: params.files,
+      name: params.name,
+      tableId: params.tableId,
+      isDeleteOther: params.isDeleteOther !== false,
+      userId: params.userId,
+      db: params.db,
+    });
   }
 
   async get(req, reply) {

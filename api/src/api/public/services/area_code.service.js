@@ -26,14 +26,60 @@ class AreaCodeService extends BaseService {
     app.post(`${p}/delete`, (req, reply) => this.delete(req, reply));
     app.get(`${p}/getlist`, (req, reply) => this.getList(req, reply));
     app.post(`${p}/save`, (req, reply) => this.save(req, reply));
+    app.get(`${p}/cityListGrouped`, (req, reply) => this.cityListGrouped(req, reply));
+    app.get(`${p}/childrenGrouped`, (req, reply) => this.childrenGrouped(req, reply));
+    app.get(`${p}/chain`, (req, reply) => this.chain(req, reply));
+  }
+
+  /**
+   * axios-miniprogram 会把 params 序列化成 params[pcode]=…，合并扁平参数
+   */
+  flattenQueryParams(p) {
+    if (!p || typeof p !== 'object') return {};
+    const nested =
+      p.params && typeof p.params === 'object' && !Array.isArray(p.params) ? p.params : {};
+    return { ...nested, ...p };
+  }
+
+  async cityListGrouped(req, reply) {
+    const q = this.flattenQueryParams(this._params(req));
+    const keyword = q.keyword != null ? q.keyword : '';
+    return this.myService.CityListGrouped({
+      keyword,
+      userId: q.userId || 0,
+      db: null,
+    });
+  }
+
+  async childrenGrouped(req, reply) {
+    const q = this.flattenQueryParams(this._params(req));
+    const pcode = q.pcode != null ? q.pcode : '';
+    const keyword = q.keyword != null ? q.keyword : '';
+    return this.myService.ChildrenGrouped({
+      pcode,
+      keyword,
+      userId: q.userId || 0,
+      db: null,
+    });
+  }
+
+  async chain(req, reply) {
+    const q = this.flattenQueryParams(this._params(req));
+    const code = q.code != null ? q.code : '';
+    return this.myService.GetRegionChainByCode({
+      code,
+      userId: q.userId || 0,
+      db: null,
+    });
   }
 
   async get(req, reply) {
     const params = this._params(req);
     let m = params.model;
+    const pk = params.code != null && params.code !== '' ? params.code : params.id;
 
-    if (!this.myService.IDIsEmpty(params.id)) {
-      m = await this.myService.Get({ id: params.id, isLoadDetailed: true, userId: params.userId });
+    if (!this.myService.IDIsEmpty(pk)) {
+      m = await this.myService.Get({ id: pk, isLoadDetailed: true, userId: params.userId });
     }
     if (!m) m = this.myModel.CopyData({
     });
@@ -54,7 +100,6 @@ class AreaCodeService extends BaseService {
 
   async _saveImpl(params, db, isSaveDetailed = false) {
     const m = this._dtoFilter(params.model, 'save');
-    const isAdd = this.myService.IDIsEmpty(m.id);
 
     m.code = await this.myService.AddOrUpdate({ model: m, userId: params.userId, isSaveDetailed, db });
     let newModel = await this.myService.Get({ id: m.code, isLoadDetailed: true, userId: params.userId, db });

@@ -1,6 +1,7 @@
 'use strict';
 
 const sequelize = require('sequelize');
+const moment = require('moment');
 const config = require('../../../core/serverConfig');
 const { BaseModel, MIN_DATE, formatDate, parseBool } = require('../../../core/baseModel');
 

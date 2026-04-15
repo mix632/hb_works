@@ -12,7 +12,12 @@ async function authPlugin(app, opts) {
   app.decorateRequest('isAdmin', false);
 
   const whitelist = ['/', '/health'];
-  const isWhitelisted = (url) => whitelist.some(p => url === p || url.startsWith(p + '?'));
+  const isWhitelisted = (url) => {
+    const pathOnly = url.split('?')[0];
+    if (whitelist.some((p) => pathOnly === p || pathOnly.startsWith(`${p}?`))) return true;
+    const ruoyiPublic = ['/ruoyi/login', '/ruoyi/captchaImage', '/ruoyi/system/dict/', '/ruoyi/system/config/'];
+    return ruoyiPublic.some((p) => pathOnly === p || pathOnly.startsWith(p));
+  };
 
   app.addHook('onRequest', async (req, reply) => {
     const authHeader = req.headers.authorization;

@@ -56,7 +56,6 @@ class UserService extends BaseService {
 
   async _saveImpl(params, db, isSaveDetailed = false) {
     const m = this._dtoFilter(params.model, 'save');
-    const isAdd = this.myService.IDIsEmpty(m.id);
 
     m.user_id = await this.myService.AddOrUpdate({ model: m, userId: params.userId, isSaveDetailed, db });
     let newModel = await this.myService.Get({ id: m.user_id, isLoadDetailed: true, userId: params.userId, db });
@@ -122,7 +121,7 @@ class UserService extends BaseService {
   }
   async setValues(req, reply) {
     const params = this._params(req);
-    await myService.setValues({
+    await this.myService.setValues({
       datas: params.datas,
       dataIdName: params.dataIdName,
       dataValueName: params.dataValueName,
@@ -135,11 +134,11 @@ class UserService extends BaseService {
   }
   async getSelect2(req, reply) {
     const params = this._params(req);
-    let data = await myService.getSelect2({
+    const data = await this.myService.getSelect2({
       selectID: params.selectID,
       strWhere: params.strWhere,
-      tableName: myService.tableName,
-      primaryKey: myService.primaryKey,
+      tableName: this.myService.tableName,
+      primaryKey: this.myService.primaryKey,
       titleName: params.titleName,
       isKeyAddTitle: params.isKeyAddTitle,
       pageIndex: params.pageIndex,
