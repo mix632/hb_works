@@ -9,6 +9,7 @@ const dto = require('../dto/sys_dept.dto');
 const util = require('../../../utils');
 const config = require('../../../core/serverConfig');
 const serviceRegistry = require('../../../core/serviceRegistry');
+const { ensureRuoyiModelBody } = require('./ruoyiUtil');
 
 class DeptService extends BaseService {
   constructor() {
@@ -19,13 +20,72 @@ class DeptService extends BaseService {
     return require('../factory');
   }
 
-  // ─── 路由注册（与原 API 路径完全一致） ─────────────────────────
+  // ─── 路由：/public/dept/*；若依兼容：/ruoyi/system/dept*（可后续把 ry 改成与 p 对称的 /ruoyi/dept/*） ──
   registerRoutes(app) {
     const p = this.prefix;
     app.get(`${p}/get`, (req, reply) => this.get(req, reply));
     app.post(`${p}/delete`, (req, reply) => this.delete(req, reply));
     app.get(`${p}/getlist`, (req, reply) => this.getList(req, reply));
     app.post(`${p}/save`, (req, reply) => this.save(req, reply));
+
+    const ry = '/ruoyi';
+    app.get(`${ry}/system/dept`, (req, reply) => this.ruoyiSystemList(req, reply));
+    app.put(`${ry}/system/dept`, (req, reply) => this.ruoyiSystemPut(req, reply));
+    app.get(`${ry}/system/dept/list`, (req, reply) => this.ruoyiSystemList(req, reply));
+    app.get(`${ry}/system/dept/list/exclude/:deptId`, (req, reply) => this.ruoyiSystemListExclude(req, reply));
+    app.get(`${ry}/system/dept/:id`, (req, reply) => this.ruoyiSystemRestGet(req, reply));
+  }
+
+  /** test/public/services/dept.service.js — list */
+  async ruoyiSystemList(req, reply) {
+    const params = this._params(req);
+    const deptRepo = this.factory.sys_deptRepo;
+    const menus = await deptRepo.GetList({ strWhere: '' });
+    const data = menus.map((e) => this.myModel.data(e));
+    return R({ Succeed: true, Message: '操作成功', toRuoyi: true, params: { data } });
+  }
+
+  async ruoyiSystemPut(req, reply) {
+    ensureRuoyiModelBody(req);
+    return this.save(req, reply);
+  }
+
+  /**
+   * 若依官方：GET /system/dept/list/exclude/{deptId}
+   */
+  async ruoyiSystemListExclude(req, reply) {
+    const excludeId = parseInt(req.params.deptId, 10);
+    if (Number.isNaN(excludeId)) {
+      return R({ Succeed: false, Message: '参数错误', toRuoyi: true });
+    }
+    const deptRepo = this.factory.sys_deptRepo;
+    const all = await deptRepo.GetList({ strWhere: '' });
+    const idStr = String(excludeId);
+    const filtered = all.filter((row) => {
+      if (Number(row.dept_id) === excludeId) return false;
+      const parts = String(row.ancestors || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      return !parts.includes(idStr);
+    });
+    const data = filtered.map((e) => this.myModel.data(e));
+    return R({ Succeed: true, Message: '操作成功', toRuoyi: true, params: { data } });
+  }
+
+  /** test/public dept.service — get */
+  async ruoyiSystemRestGet(req, reply) {
+    const params = this._params(req);
+    const deptRepo = this.factory.sys_deptRepo;
+    const id = parseInt(req.params.id, 10);
+    if (Number.isNaN(id)) {
+      return R({ Succeed: false, Message: '参数错误', toRuoyi: true });
+    }
+    const data = await deptRepo.Get({ id, userId: params.userId });
+    if (!data) {
+      return R({ Succeed: false, Message: '未能找到部门数据' });
+    }
+    return R({ Succeed: true, Message: '操作成功', toRuoyi: true, Data: this.myModel.data(data) });
   }
 
   async get(req, reply) {

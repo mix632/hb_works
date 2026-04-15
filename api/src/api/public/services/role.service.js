@@ -9,6 +9,7 @@ const dto = require('../dto/sys_role.dto');
 const util = require('../../../utils');
 const config = require('../../../core/serverConfig');
 const serviceRegistry = require('../../../core/serviceRegistry');
+const { ensureRuoyiModelBody } = require('./ruoyiUtil');
 
 class RoleService extends BaseService {
   constructor() {
@@ -19,13 +20,81 @@ class RoleService extends BaseService {
     return require('../factory');
   }
 
-  // ─── 路由注册（与原 API 路径完全一致） ─────────────────────────
+  // ─── 路由：/public/role/*；若依兼容：/ruoyi/system/role* ─────────────────
   registerRoutes(app) {
     const p = this.prefix;
     app.get(`${p}/get`, (req, reply) => this.get(req, reply));
     app.post(`${p}/delete`, (req, reply) => this.delete(req, reply));
     app.get(`${p}/getlist`, (req, reply) => this.getList(req, reply));
     app.post(`${p}/save`, (req, reply) => this.save(req, reply));
+
+    const ry = '/ruoyi';
+    app.get(`${ry}/system/role`, (req, reply) => this.ruoyiSystemList(req, reply));
+    app.put(`${ry}/system/role`, (req, reply) => this.ruoyiSystemPut(req, reply));
+    app.get(`${ry}/system/role/list`, (req, reply) => this.ruoyiSystemList(req, reply));
+    app.get(`${ry}/system/role/:id`, (req, reply) => this.ruoyiSystemRestGet(req, reply));
+  }
+
+  /** test/public/services/role.service.js — getList */
+  async ruoyiSystemList(req, reply) {
+    const params = this._params(req);
+    const roleRepo = this.factory.sys_roleRepo;
+    const pageNum = Math.max(1, parseInt(params.pageNum, 10) || 1);
+    const pageSize = Math.max(1, parseInt(params.pageSize, 10) || 10);
+    const [roleList, total] = await Promise.all([
+      roleRepo.GetListForPageIndex({
+        strWhere: '',
+        pageIndex: pageNum - 1,
+        onePageCount: pageSize,
+        strOrder: 'sys_role.role_id',
+        userId: params.userId,
+      }),
+      roleRepo.Count({ strWhere: '', userId: params.userId }),
+    ]);
+    const rows = [];
+    for (const role of roleList) {
+      rows.push({
+        createBy: role.create_by,
+        createTime: role.create_time,
+        updateBy: role.update_by,
+        updateTime: role.update_time,
+        remark: role.remark,
+        roleId: role.role_id,
+        roleName: role.role_name,
+        roleKey: role.role_key,
+        roleSort: role.role_sort,
+        dataScope: role.data_scope,
+        menuCheckStrictly: role.menu_check_strictly,
+        deptCheckStrictly: role.dept_check_strictly,
+        status: role.status,
+        delFlag: role.del_flag,
+        flag: false,
+        admin: role.role_key === 'admin',
+      });
+    }
+    const data = { code: 0, rows, total };
+    util.objectDateToString({ model: data });
+    return data;
+  }
+
+  async ruoyiSystemPut(req, reply) {
+    ensureRuoyiModelBody(req);
+    return this.save(req, reply);
+  }
+
+  /** test/public role.service — get */
+  async ruoyiSystemRestGet(req, reply) {
+    const params = this._params(req);
+    const roleRepo = this.factory.sys_roleRepo;
+    const id = parseInt(req.params.id, 10);
+    if (Number.isNaN(id)) {
+      return R({ Succeed: false, Message: '参数错误', toRuoyi: true });
+    }
+    const data = await roleRepo.Get({ id, isLoadDetailed: true, userId: params.userId });
+    if (!data) {
+      return R({ Succeed: false, Message: '未能找到角色数据', toRuoyi: true });
+    }
+    return R({ Succeed: true, Data: this.myModel.data(data), toRuoyi: true });
   }
 
   async get(req, reply) {

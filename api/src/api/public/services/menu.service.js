@@ -9,6 +9,7 @@ const dto = require('../dto/sys_menu.dto');
 const util = require('../../../utils');
 const config = require('../../../core/serverConfig');
 const serviceRegistry = require('../../../core/serviceRegistry');
+const { sqlEsc, ensureRuoyiModelBody } = require('./ruoyiUtil');
 
 class MenuService extends BaseService {
   constructor() {
@@ -19,13 +20,99 @@ class MenuService extends BaseService {
     return require('../factory');
   }
 
-  // ─── 路由注册（与原 API 路径完全一致） ─────────────────────────
+  // ─── 路由：/public/menu/*；若依兼容：/ruoyi/system/menu* ─────────────────
   registerRoutes(app) {
     const p = this.prefix;
     app.get(`${p}/get`, (req, reply) => this.get(req, reply));
     app.post(`${p}/delete`, (req, reply) => this.delete(req, reply));
     app.get(`${p}/getlist`, (req, reply) => this.getList(req, reply));
     app.post(`${p}/save`, (req, reply) => this.save(req, reply));
+
+    const ry = '/ruoyi';
+    app.get(`${ry}/system/menu`, (req, reply) => this.ruoyiSystemList(req, reply));
+    app.put(`${ry}/system/menu`, (req, reply) => this.ruoyiSystemPut(req, reply));
+    app.get(`${ry}/system/menu/list`, (req, reply) => this.ruoyiSystemList(req, reply));
+    app.get(`${ry}/system/menu/roleMenuTreeselect/:roleId`, (req, reply) => this.ruoyiRoleMenuTreeselect(req, reply));
+    app.get(`${ry}/system/menu/roleMenuTreeselect`, (req, reply) => this.ruoyiRoleMenuTreeselect(req, reply));
+    app.get(`${ry}/system/menu/:id`, (req, reply) => this.ruoyiSystemRestGet(req, reply));
+  }
+
+  /** test/public/services/menu.service.js — list */
+  async ruoyiSystemList(req, reply) {
+    const params = this._params(req);
+    const menuRepo = this.factory.sys_menuRepo;
+    const search = await menuRepo.GetSearchSQL({ searchModel: params, userId: params.userId });
+    const menus = await menuRepo.GetList({
+      strWhere: search.sql,
+      strParams: search.params,
+    });
+    const data = menus.map((e) => this.myModel.data(e));
+    return R({ Succeed: true, Message: '操作成功', toRuoyi: true, params: { data } });
+  }
+
+  async ruoyiSystemPut(req, reply) {
+    ensureRuoyiModelBody(req);
+    return this.save(req, reply);
+  }
+
+  /**
+   * 若依：分配角色菜单树（对应 test role.getMenuTree + treeselect）
+   */
+  async ruoyiRoleMenuTreeselect(req, reply) {
+    const params = this._params(req);
+    const roleId = req.params.roleId ?? params.roleId ?? params.id;
+    const menuRepo = this.factory.sys_menuRepo;
+    const roleMenuRepo = this.factory.sys_role_menuRepo;
+    const search = await menuRepo.GetSearchSQL({ searchModel: params, userId: params.userId });
+    let raw = await menuRepo.GetList({ strWhere: search.sql, strParams: search.params });
+    let rows = raw.map((e) => this.myModel.data(e));
+    if (!util.parseBool(params.isAll)) {
+      rows = rows.filter((e) => !util.parseBool(e.visible));
+    }
+    const menus = rows.map((e) => ({
+      id: e.menuId,
+      pid: e.parentId,
+      label: e.menuName,
+    }));
+    const roots = menus.filter((e) => !e.pid || e.pid === 0);
+    const diguiMenu = (rs, all) => {
+      for (const i of rs) {
+        i.children = all.filter((el) => el.pid == i.id);
+        if (i.children.length) diguiMenu(i.children, all);
+      }
+    };
+    diguiMenu(roots, menus);
+
+    let checkedKeys = [];
+    if (roleId != null && roleId !== '') {
+      const rm = await roleMenuRepo.GetList({
+        strWhere: `sys_role_menu.role_id = '${sqlEsc(roleId)}'`,
+        userId: params.userId,
+      });
+      checkedKeys = rm.map((e) => e.menu_id);
+    }
+    return R({
+      Succeed: true,
+      Message: '操作成功',
+      toRuoyi: true,
+      Data: roots,
+      params: { checkedKeys },
+    });
+  }
+
+  /** test/public menu.service — get */
+  async ruoyiSystemRestGet(req, reply) {
+    const params = this._params(req);
+    const menuRepo = this.factory.sys_menuRepo;
+    const id = parseInt(req.params.id, 10);
+    if (Number.isNaN(id)) {
+      return R({ Succeed: false, Message: '参数错误', toRuoyi: true });
+    }
+    const data = await menuRepo.Get({ id, userId: params.userId });
+    if (!data) {
+      return R({ Succeed: false, Message: '未能找到菜单数据' });
+    }
+    return R({ Succeed: true, Message: '操作成功', toRuoyi: true, Data: this.myModel.data(data) });
   }
 
   async get(req, reply) {

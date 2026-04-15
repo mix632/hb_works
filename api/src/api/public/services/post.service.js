@@ -9,6 +9,7 @@ const dto = require('../dto/sys_post.dto');
 const util = require('../../../utils');
 const config = require('../../../core/serverConfig');
 const serviceRegistry = require('../../../core/serviceRegistry');
+const { ensureRuoyiModelBody } = require('./ruoyiUtil');
 
 class PostService extends BaseService {
   constructor() {
@@ -19,13 +20,49 @@ class PostService extends BaseService {
     return require('../factory');
   }
 
-  // ─── 路由注册（与原 API 路径完全一致） ─────────────────────────
+  // ─── 路由：/public/post/*；若依兼容：/ruoyi/system/post* ─────────────────
   registerRoutes(app) {
     const p = this.prefix;
     app.get(`${p}/get`, (req, reply) => this.get(req, reply));
     app.post(`${p}/delete`, (req, reply) => this.delete(req, reply));
     app.get(`${p}/getlist`, (req, reply) => this.getList(req, reply));
     app.post(`${p}/save`, (req, reply) => this.save(req, reply));
+
+    const ry = '/ruoyi';
+    app.get(`${ry}/system/post`, (req, reply) => this.ruoyiSystemList(req, reply));
+    app.put(`${ry}/system/post`, (req, reply) => this.ruoyiSystemPut(req, reply));
+    app.get(`${ry}/system/post/list`, (req, reply) => this.ruoyiSystemList(req, reply));
+    app.get(`${ry}/system/post/:id`, (req, reply) => this.ruoyiSystemRestGet(req, reply));
+  }
+
+  /** test/public/services/post.service.js — list */
+  async ruoyiSystemList(req, reply) {
+    const postRepo = this.factory.sys_postRepo;
+    const datas = await postRepo.GetList({ strWhere: '' });
+    const rows = datas.map((e) => this.myModel.data(e));
+    const out = { code: 0, rows, total: rows.length };
+    util.objectDateToString({ model: out });
+    return out;
+  }
+
+  async ruoyiSystemPut(req, reply) {
+    ensureRuoyiModelBody(req);
+    return this.save(req, reply);
+  }
+
+  /** test/public post.service — get */
+  async ruoyiSystemRestGet(req, reply) {
+    const params = this._params(req);
+    const postRepo = this.factory.sys_postRepo;
+    const id = parseInt(req.params.id, 10);
+    if (Number.isNaN(id)) {
+      return R({ Succeed: false, Message: '参数错误', toRuoyi: true });
+    }
+    const data = await postRepo.Get({ id, userId: params.userId });
+    if (!data) {
+      return R({ Succeed: false, Message: '未能找到岗位数据' });
+    }
+    return R({ Succeed: true, Message: '操作成功', toRuoyi: true, Data: this.myModel.data(data) });
   }
 
   async get(req, reply) {
