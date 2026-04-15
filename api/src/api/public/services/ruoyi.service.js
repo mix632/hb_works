@@ -151,6 +151,46 @@ class RuoyiService extends BaseService {
     return req.ip || '';
   }
 
+  /**
+   * 若依 PUT 常在 body 根上带表单字段；各 public 模块的 save 需要 params.model
+   */
+  _ensureModelBody(req) {
+    const b = req.body;
+    if (!b || typeof b !== 'object' || b.model !== undefined) return;
+    const model = { ...b };
+    req.body = { ...b, model };
+  }
+
+  /** PUT /ruoyi/system/user — 与 POST /system/user/save 一致 */
+  async systemUserPut(req, reply) {
+    this._ensureModelBody(req);
+    return this.systemUserSave(req, reply);
+  }
+
+  /** PUT /ruoyi/system/role — 委托 public/role/save */
+  async systemRolePut(req, reply) {
+    this._ensureModelBody(req);
+    return roleSvc.save(req, reply);
+  }
+
+  /** PUT /ruoyi/system/menu */
+  async systemMenuPut(req, reply) {
+    this._ensureModelBody(req);
+    return menuSvc.save(req, reply);
+  }
+
+  /** PUT /ruoyi/system/dept */
+  async systemDeptPut(req, reply) {
+    this._ensureModelBody(req);
+    return deptSvc.save(req, reply);
+  }
+
+  /** PUT /ruoyi/system/post */
+  async systemPostPut(req, reply) {
+    this._ensureModelBody(req);
+    return postSvc.save(req, reply);
+  }
+
   async captchaImage(req, reply) {
     return { captchaEnabled: false, code: 200 };
   }
