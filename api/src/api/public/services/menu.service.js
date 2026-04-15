@@ -53,7 +53,35 @@ class MenuService extends BaseService {
   }
 
   async _saveImpl(params, db, isSaveDetailed = false) {
-    const m = this._dtoFilter(params.model, 'save');
+    const r = params.model;
+    const m = this._dtoFilter(
+      this.myModel.CopyData({
+        menu_id: r.menu_id ?? r.menuId,
+        menu_name: r.menu_name ?? r.menuName,
+        parent_id: r.parent_id ?? r.parentId,
+        order_num: r.order_num ?? r.orderNum,
+        path: r.path,
+        component: r.component,
+        query: r.query,
+        is_frame: r.is_frame ?? r.isFrame,
+        is_cache: r.is_cache ?? r.isCache,
+        menu_type: r.menu_type ?? r.menuType,
+        visible: r.visible,
+        status: r.status,
+        edit_open_new_page: r.edit_open_new_page ?? r.editOpenNewPage,
+        open_route: r.open_route ?? r.openRoute,
+        perms: r.perms,
+        icon: r.icon,
+        i18n: r.i18n,
+        isOpenUrl: r.isOpenUrl,
+        create_by: r.create_by ?? r.createBy,
+        create_time: r.create_time ?? r.createTime,
+        update_by: r.update_by ?? r.updateBy,
+        update_time: r.update_time ?? r.updateTime,
+        remark: r.remark,
+      }),
+      'save',
+    );
     const isAdd = this.myService.IDIsEmpty(m.id);
 
     m.menu_id = await this.myService.AddOrUpdate({ model: m, userId: params.userId, isSaveDetailed, db });

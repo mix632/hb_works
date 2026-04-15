@@ -53,7 +53,22 @@ class PostService extends BaseService {
   }
 
   async _saveImpl(params, db, isSaveDetailed = false) {
-    const m = this._dtoFilter(params.model, 'save');
+    const r = params.model;
+    const m = this._dtoFilter(
+      this.myModel.CopyData({
+        post_id: r.post_id ?? r.postId,
+        post_code: r.post_code ?? r.postCode,
+        post_name: r.post_name ?? r.postName,
+        post_sort: r.post_sort ?? r.postSort,
+        status: r.status,
+        create_by: r.create_by ?? r.createBy,
+        create_time: r.create_time ?? r.createTime,
+        update_by: r.update_by ?? r.updateBy,
+        update_time: r.update_time ?? r.updateTime,
+        remark: r.remark,
+      }),
+      'save',
+    );
     const isAdd = this.myService.IDIsEmpty(m.id);
 
     m.post_id = await this.myService.AddOrUpdate({ model: m, userId: params.userId, isSaveDetailed, db });

@@ -53,7 +53,28 @@ class DeptService extends BaseService {
   }
 
   async _saveImpl(params, db, isSaveDetailed = false) {
-    const m = this._dtoFilter(params.model, 'save');
+    const r = params.model;
+    // 与 test/public/services/dept.service：若依表单为 camelCase，经 CopyData 落到 snake_case
+    const m = this._dtoFilter(
+      this.myModel.CopyData({
+        dept_id: r.dept_id ?? r.deptId,
+        parent_id: r.parent_id ?? r.parentId,
+        ancestors: r.ancestors,
+        dept_name: r.dept_name ?? r.deptName,
+        order_num: r.order_num ?? r.orderNum,
+        leader: r.leader,
+        phone: r.phone,
+        email: r.email,
+        status: r.status,
+        isNotShow: r.isNotShow,
+        del_flag: r.del_flag ?? r.delFlag,
+        create_by: r.create_by ?? r.createBy,
+        create_time: r.create_time ?? r.createTime,
+        update_by: r.update_by ?? r.updateBy,
+        update_time: r.update_time ?? r.updateTime,
+      }),
+      'save',
+    );
     const isAdd = this.myService.IDIsEmpty(m.id);
 
     m.dept_id = await this.myService.AddOrUpdate({ model: m, userId: params.userId, isSaveDetailed, db });

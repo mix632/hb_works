@@ -53,7 +53,26 @@ class RoleService extends BaseService {
   }
 
   async _saveImpl(params, db, isSaveDetailed = false) {
-    const m = this._dtoFilter(params.model, 'save');
+    const r = params.model;
+    const m = this._dtoFilter(
+      this.myModel.CopyData({
+        role_id: r.role_id ?? r.roleId,
+        role_name: r.role_name ?? r.roleName,
+        role_key: r.role_key ?? r.roleKey,
+        role_sort: r.role_sort ?? r.roleSort,
+        data_scope: r.data_scope ?? r.dataScope,
+        menu_check_strictly: r.menu_check_strictly ?? r.menuCheckStrictly,
+        dept_check_strictly: r.dept_check_strictly ?? r.deptCheckStrictly,
+        status: r.status,
+        del_flag: r.del_flag ?? r.delFlag,
+        create_by: r.create_by ?? r.createBy,
+        create_time: r.create_time ?? r.createTime,
+        update_by: r.update_by ?? r.updateBy,
+        update_time: r.update_time ?? r.updateTime,
+        remark: r.remark,
+      }),
+      'save',
+    );
     const isAdd = this.myService.IDIsEmpty(m.id);
 
     m.role_id = await this.myService.AddOrUpdate({ model: m, userId: params.userId, isSaveDetailed, db });
