@@ -13,6 +13,7 @@ const { R } = require('../../../core/errors');
 const util = require('../../../utils');
 const { nowStr } = require('../../../utils/dateUtil');
 const factory = require('../factory');
+const userRepo = require('../dal/sys_user.repo');
 const userModel = require('../model/sys_user.model');
 
 function md5Hex(str) {
@@ -40,6 +41,15 @@ function copyObj(obj) {
 }
 
 class RuoyiService extends BaseService {
+  constructor() {
+    super({
+      service: userRepo,
+      model: userModel,
+      prefix: '/ruoyi',
+      dto: null,
+    });
+  }
+
   registerRoutes(app) {
     const p = '/ruoyi';
     app.get(`${p}/captchaImage`, (req, reply) => this.captchaImage(req, reply));

@@ -1,7 +1,12 @@
 'use strict';
 
+const jwt = require('jsonwebtoken');
 const { dateFormat } = require('../utils/dateUtil');
 const { R } = require('./errors');
+const serverConfig = require('./serverConfig');
+
+/** JWT 标准声明，不合并进业务参数 */
+const JWT_META_KEYS = new Set(['iat', 'exp', 'nbf', 'iss', 'aud', 'jti']);
 
 /**
  * BaseService — CRUD 模板
@@ -57,8 +62,33 @@ class BaseService {
 
   _params(req) {
     const p = { ...(req.query || {}), ...(req.body || {}) };
-    p.userId = req.userId || 0;
-    p.isAdmin = req.isAdmin || false;
+
+    const authRaw = req.headers?.authorization || req.headers?.Authorization;
+    if (authRaw) {
+      const token = String(authRaw).replace(/^Bearer\s+/i, '').replace(/"/g, '').trim();
+      if (token && token !== 'undefined') {
+        try {
+          const payload = jwt.verify(token, serverConfig.tokenPrivateKey);
+          for (const [k, v] of Object.entries(payload)) {
+            if (JWT_META_KEYS.has(k)) continue;
+            if (p[k] === undefined || p[k] === null || p[k] === '') {
+              p[k] = v;
+            }
+          }
+        } catch (_) {
+          // 白名单等未走全局鉴权的路由可能带无效 token，忽略即可；已鉴权路由在进 handler 前已被 middleware 拒绝
+        }
+      }
+    }
+
+    if (req.userId != null && req.userId !== 0) {
+      p.userId = req.userId;
+    } else if (p.userId != null && p.userId !== '') {
+      p.userId = typeof p.userId === 'string' ? parseInt(p.userId, 10) : p.userId;
+    } else {
+      p.userId = 0;
+    }
+    p.isAdmin = !!req.isAdmin;
     return p;
   }
 
