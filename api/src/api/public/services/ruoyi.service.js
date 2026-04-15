@@ -189,35 +189,6 @@ class RuoyiService extends BaseService {
       `sys_menu.menu_id in (select menu_id from sys_role_menu where role_id in (select role_id from sys_user_role where user_id = ${uid})) or sys_menu.menu_type = 'F'`;
     const menus = await menuRepo.GetList({ strWhere: sql });
 
-    const buildChild = (parentMenuId) => {
-      return menus
-        .filter((e) => Number(e.parent_id) === Number(parentMenuId))
-        .map((e) => {
-          const data = {
-            id: e.menu_id,
-            name: e.path,
-            path: e.path,
-            hidden: util.parseBool(e.visible),
-            component: e.component,
-            query: e.query,
-            i18n: e.i18n,
-            permission: e.perms,
-            editOpenNewPage: e.edit_open_new_page,
-            meta: {
-              title: e.menu_name,
-              icon: e.icon,
-              noCache: util.parseBool(e.is_cache),
-              link: e.is_frame ? null : e.path,
-            },
-            children: [],
-          };
-          this.setMenuComponent({ dbData: e, data });
-          data.children = buildChild(e.menu_id);
-          this.insertOpenNewPage(data.children);
-          return data;
-        });
-    };
-
     const roots = menus.filter((e) => !e.parent_id).map((e) => {
       const data = {
         id: e.menu_id,
@@ -239,24 +210,60 @@ class RuoyiService extends BaseService {
         children: [],
       };
       this.setMenuComponent({ dbData: e, data });
-      data.children = buildChild(e.menu_id);
-      this.insertOpenNewPage(data.children);
       return data;
     });
     this.insertOpenNewPage(roots);
-    return R({ Succeed: true, toRuoyi: true, params: { data: roots } });
+    this.recursionMenu({ menus, roots });
+    return R({ Succeed: true, toRuoyi: true, Data: roots });
   }
 
+  /**
+   * 递归子菜单（与 test/public/services/ruoyi.service.js 一致）
+   */
+  recursionMenu({ menus, roots }) {
+    for (const i of roots) {
+      const children = menus.filter((e) => e.parent_id == i.id);
+      i.children = children.map((e) => {
+        const data = {
+          id: e.menu_id,
+          name: e.path,
+          path: e.path,
+          hidden: util.parseBool(e.visible),
+          component: e.component,
+          query: e.query,
+          i18n: e.i18n,
+          permission: e.perms,
+          editOpenNewPage: e.edit_open_new_page,
+          meta: {
+            title: e.menu_name,
+            icon: e.icon,
+            noCache: util.parseBool(e.is_cache),
+            link: e.is_frame ? null : e.path,
+          },
+          children: [],
+        };
+        this.recursionMenu({ menus, roots: i.children });
+        this.setMenuComponent({ dbData: e, data });
+        return data;
+      });
+      this.insertOpenNewPage(i.children);
+      this.recursionMenu({ menus, roots: i.children });
+    }
+  }
+
+  /**
+   * 子菜单里「新窗口编辑」路由（与 test/public 一致：最后一段 component 改为 edit）
+   */
   insertOpenNewPage(menus) {
     const exists = menus.filter((e) => e.editOpenNewPage);
-    for (const i of exists) {
-      const copyMenu = copyObj(i);
+    if (!exists.length) return;
+    for (const item of exists) {
+      const copyMenu = copyObj(item);
       const name = `${copyMenu.name}/edit`;
       if (menus.some((e) => e.name === name)) continue;
       copyMenu.name = `${copyMenu.name}/edit`;
       copyMenu.path = `${copyMenu.path}/edit`;
-      const comp = copyMenu.component || '';
-      const parts = comp.split('/').filter(Boolean);
+      const parts = (copyMenu.component || '').split('/').filter((x) => x);
       if (parts.length) {
         parts.splice(parts.length - 1, 1, 'edit');
         copyMenu.component = parts.join('/');
