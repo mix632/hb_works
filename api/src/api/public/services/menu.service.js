@@ -136,12 +136,12 @@ class MenuService extends BaseService {
       });
       checkedKeys = rm.map((e) => e.menu_id);
     }
+    // 与 test/public role.getMenuTree：params.menus + params.checkedKeys（勿用 Data，否则 toRuoyi 只塞 data、缺 menus）
     return R({
       Succeed: true,
       Message: '操作成功',
       toRuoyi: true,
-      Data: roots,
-      params: { checkedKeys },
+      params: { menus: roots, checkedKeys },
     });
   }
 
