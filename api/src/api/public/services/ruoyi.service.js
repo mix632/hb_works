@@ -1,8 +1,9 @@
 'use strict';
 
 /**
- * 若依风格接口（从 test/public/services/ruoyi.service.js 移植）
- * 前缀：/ruoyi
+ * 若依风格接口
+ * - 核心路由：test/public/services/ruoyi.service.js
+ * - /ruoyi/system/user/*：test/public/services/user.service.js（原 Moleculer rest: /ruoyi/system/user）
  */
 
 const crypto = require('crypto');
@@ -15,6 +16,11 @@ const { nowStr } = require('../../../utils/dateUtil');
 const factory = require('../factory');
 const userRepo = require('../dal/sys_user.repo');
 const userModel = require('../model/sys_user.model');
+const deptModel = require('../model/sys_dept.model');
+const postModel = require('../model/sys_post.model');
+const roleModel = require('../model/sys_role.model');
+const userRoleModel = require('../model/sys_user_role.model');
+const userPostModel = require('../model/sys_user_post.model');
 
 function md5Hex(str) {
   return crypto.createHash('md5').update(String(str || ''), 'utf8').digest('hex');
@@ -80,6 +86,7 @@ class RuoyiService extends BaseService {
     app.post(`${p}/login`, (req, reply) => this.login(req, reply));
     app.get(`${p}/getInfo`, (req, reply) => this.getInfo(req, reply));
     app.post(`${p}/logout`, (req, reply) => this.logout(req, reply));
+    app.get(`${p}/logout`, (req, reply) => this.logout(req, reply));
     app.get(`${p}/getRouters`, (req, reply) => this.getRouters(req, reply));
     app.get(`${p}/system/dict/data/type/sys_show_hide`, (req, reply) => this.sys_show_hide(req, reply));
     app.get(`${p}/system/dict/data/type/sys_normal_disable`, (req, reply) => this.sys_normal_disable(req, reply));
@@ -91,6 +98,20 @@ class RuoyiService extends BaseService {
     app.post(`${p}/resetPwd`, (req, reply) => this.resetPwd(req, reply));
     app.get(`${p}/system/user/list`, (req, reply) => this.systemUserList(req, reply));
     app.get(`${p}/system/user/deptTree`, (req, reply) => this.systemDeptTree(req, reply));
+    app.get(`${p}/system/user/get`, (req, reply) => this.systemUserGet(req, reply));
+    app.post(`${p}/system/user/save`, (req, reply) => this.systemUserSave(req, reply));
+    app.post(`${p}/system/user/delete`, (req, reply) => this.systemUserDelete(req, reply));
+    app.get(`${p}/system/user/profile`, (req, reply) => this.systemUserProfile(req, reply));
+    app.put(`${p}/system/user/profileSave`, (req, reply) => this.systemUserProfileSave(req, reply));
+    app.post(`${p}/system/user/profileSave`, (req, reply) => this.systemUserProfileSave(req, reply));
+    app.put(`${p}/system/user/changeStatus`, (req, reply) => this.systemUserChangeStatus(req, reply));
+    app.post(`${p}/system/user/changeStatus`, (req, reply) => this.systemUserChangeStatus(req, reply));
+    app.get(`${p}/system/user/export`, (req, reply) => this.systemUserExport(req, reply));
+    app.post(`${p}/system/user/export`, (req, reply) => this.systemUserExport(req, reply));
+    app.post(`${p}/system/user/setAvatar`, (req, reply) => this.systemUserSetAvatar(req, reply));
+    app.get(`${p}/system/user/getSelect2`, (req, reply) => this.systemUserGetSelect2(req, reply));
+    app.post(`${p}/system/user/getSelect2`, (req, reply) => this.systemUserGetSelect2(req, reply));
+    app.get(`${p}/system/user/getDatas`, (req, reply) => this.systemUserGetDatas(req, reply));
   }
 
   _clientIp(req) {
@@ -240,7 +261,7 @@ class RuoyiService extends BaseService {
     });
     this.insertOpenNewPage(roots);
     this.recursionMenu({ menus, roots });
-    return R({ Succeed: true, toRuoyi: true, Data: roots });
+    return R({ Succeed: true, toRuoyi: true, params: { data: roots } });
   }
 
   /**
@@ -525,6 +546,267 @@ class RuoyiService extends BaseService {
       return R({ Succeed: false, Message: '修改密码失败', toRuoyi: true });
     }
     return R({ Succeed: true, Message: '修改密码成功', toRuoyi: true });
+  }
+
+  /** test/public user.service — get */
+  async systemUserGet(req, reply) {
+    const params = this._params(req);
+    const postRepo = factory.sys_postRepo;
+    const roleRepo = factory.sys_roleRepo;
+    const userRoleRepo = factory.sys_user_roleRepo;
+    const userPostRepo = factory.sys_user_postRepo;
+
+    let data = null;
+    if (params.id) {
+      data = await userRepo.Get({ id: params.id, isLoadDetailed: true, userId: params.userId });
+    } else if (params.username) {
+      data = await userRepo.Get({
+        strWhere: `sys_user.user_name = '${sqlEsc(params.username)}'`,
+        isLoadDetailed: true,
+        userId: params.userId,
+      });
+    } else if (params.miniProgram) {
+      data = await userRepo.Get({
+        strWhere: `JSON_UNQUOTE(JSON_EXTRACT(login_data, '$.miniOpenId')) = '${sqlEsc(params.miniProgram.openId)}'`,
+        isLoadDetailed: true,
+        userId: params.userId,
+      });
+    } else {
+      if (params.checkEmpty) {
+        return R({ Succeed: false, Message: params.checkMsg || '未能找到用户信息', Code: 403 });
+      }
+      data = userModel.CopyData({});
+    }
+    if (!data) {
+      return R({ Succeed: false, Message: '未能找到用户数据' });
+    }
+    data = userModel.data(data);
+    let posts = await postRepo.GetList({ strWhere: '' });
+    posts = posts.map((e) => postModel.data(e));
+    let roles = await roleRepo.GetList({ strWhere: '' });
+    roles = roles.map((e) => roleModel.data(e));
+    const uid = data.userId;
+    const user_role = await userRoleRepo.GetList({ strWhere: `sys_user_role.user_id = '${uid}'` });
+    const user_post = await userPostRepo.GetList({ strWhere: `sys_user_post.user_id = '${uid}'` });
+    const extra = {
+      posts,
+      roles,
+      roleIds: user_role.map((e) => e.role_id),
+      postIds: user_post.map((e) => e.post_id),
+    };
+    return R({ Succeed: true, Message: '操作成功', Data: data, params: extra, toRuoyi: true });
+  }
+
+  /** test/public user.service — save */
+  async systemUserSave(req, reply) {
+    const params = this._params(req);
+    const m = params.model;
+    if (!m) return R({ Succeed: false, Message: '传入参数有误', toRuoyi: true });
+
+    const exist = await userRepo.Get({ strWhere: `sys_user.user_name = '${sqlEsc(m.userName)}'` });
+    if (exist && exist.user_id != m.userId) {
+      return R({ Succeed: false, Message: `${m.userName} 已经存在，请换一个用户名`, toRuoyi: true });
+    }
+    const oldModel = m.userId ? await userRepo.Get({ id: m.userId }) : null;
+    const password = oldModel ? oldModel.password : (m.password ? md5Hex(m.password) : '');
+
+    const model = userModel.CopyData({
+      user_id: m.userId,
+      dept_id: m.deptId,
+      user_name: m.userName,
+      nick_name: m.nickName,
+      email: m.email,
+      phonenumber: m.phonenumber,
+      birthday: m.birthday,
+      sex: m.sex,
+      avatar: m.avatar,
+      password,
+      status: m.status,
+      del_flag: m.delFlag,
+      login_ip: m.loginIp,
+      login_date: m.loginDate,
+      login_data: m.loginData,
+      user_type: m.userType,
+      remark: m.remark,
+      token: m.token,
+      is_all_bag: m.is_all_bag,
+      bag_ids: m.bag_ids,
+    });
+    if (m.Files) model.files = m.Files;
+
+    const userRoleRepo = factory.sys_user_roleRepo;
+    const userPostRepo = factory.sys_user_postRepo;
+    const isSaveDetailed = params.hasOwnProperty('isSaveDetailed') ? params.isSaveDetailed : true;
+
+    const inner = await userRepo.Transaction(async (db) => {
+      model.user_id = await userRepo.AddOrUpdate({
+        model,
+        userId: params.userId,
+        isSaveDetailed,
+        db,
+      });
+      if (userRepo.IDIsEmpty(model.user_id)) {
+        return R({ Succeed: false, Message: '用户数据保存失败', toRuoyi: true });
+      }
+      await userRoleRepo.Delete({
+        strWhere: `sys_user_role.user_id = ${model.user_id}`,
+        forceExecute: true,
+        db,
+      });
+      for (const rid of m.roleIds || []) {
+        if (!rid) continue;
+        await userRoleRepo.AddOrUpdate({
+          model: userRoleModel.CopyData({ user_id: model.user_id, role_id: rid }),
+          db,
+          isNotCheckModel: true,
+        });
+      }
+      await userPostRepo.Delete({
+        strWhere: `sys_user_post.user_id = ${model.user_id}`,
+        forceExecute: true,
+        db,
+      });
+      for (const pid of m.postIds || []) {
+        if (!pid) continue;
+        await userPostRepo.AddOrUpdate({
+          model: userPostModel.CopyData({ user_id: model.user_id, post_id: pid }),
+          db,
+          isNotCheckModel: true,
+        });
+      }
+      return R({ Succeed: true });
+    });
+    if (!inner.Succeed) return inner;
+    const saved = await userRepo.Get({ id: model.user_id, isLoadDetailed: true, userId: params.userId });
+    return R({
+      Succeed: true,
+      Message: '保存成功',
+      Data: saved ? userModel.data(saved) : userModel.data(model),
+      toRuoyi: true,
+    });
+  }
+
+  /** test/public user.service — delete */
+  async systemUserDelete(req, reply) {
+    const params = this._params(req);
+    const result = await userRepo.Transaction(async (db) => {
+      if (params.ids && params.ids.length) {
+        return userRepo.Delete({ ids: params.ids, userId: params.userId, db });
+      }
+      if (params.id && !userRepo.IDIsEmpty(params.id)) {
+        return userRepo.Delete({ id: params.id, userId: params.userId, db });
+      }
+      return R({ Succeed: false, Message: '传入参数有误' });
+    });
+    return result;
+  }
+
+  /** test/public user.service — profile */
+  async systemUserProfile(req, reply) {
+    const params = this._params(req);
+    const deptRepo = factory.sys_deptRepo;
+    const postRepo = factory.sys_postRepo;
+    const roleRepo = factory.sys_roleRepo;
+
+    let user = await userRepo.Get({ id: params.userId });
+    if (!user) {
+      return R({ Succeed: false, Message: '获取个人信息失败', toRuoyi: true });
+    }
+    user = userModel.data(user);
+    let dept = user.deptId ? await deptRepo.Get({ id: user.deptId }) : null;
+    if (dept) {
+      user.dept = deptModel.data(dept);
+    }
+    const posts = await postRepo.GetList({
+      strWhere: `sys_post.post_id = (select post_id from sys_user_post where user_id = '${params.userId}')`,
+    });
+    const roles = await roleRepo.GetList({
+      strWhere: `sys_role.role_id = (select role_id from sys_user_role where user_id = '${params.userId}')`,
+    });
+    const extra = {
+      postGroup: posts.map((e) => e.post_name).join(','),
+      roleGroup: roles.map((e) => e.role_name).join(','),
+    };
+    return R({ Succeed: true, Data: user, params: extra, toRuoyi: true });
+  }
+
+  /** test/public user.service — profileSave */
+  async systemUserProfileSave(req, reply) {
+    const params = this._params(req);
+    let user = await userRepo.Get({ id: params.userId });
+    if (!user) {
+      return R({ Succeed: false, Message: '获取个人信息失败', toRuoyi: true });
+    }
+    user.phonenumber = params.phonenumber;
+    user.email = params.email;
+    user.sex = params.sex;
+    user.nick_name = params.nickName;
+    user.user_id = await userRepo.AddOrUpdate({ model: user, userId: params.userId });
+    if (userRepo.IDIsEmpty(user.user_id)) {
+      return R({ Succeed: false, Message: '资料修改失败' });
+    }
+    return R({ Succeed: true, Message: '资料修改成功', toRuoyi: true });
+  }
+
+  /** test/public user.service — changeStatus */
+  async systemUserChangeStatus(req, reply) {
+    const params = this._params(req);
+    if (String(params.modifyUserId) === String(params.userId)) {
+      return R({ Succeed: false, Message: '自己不能停自己的账号', toRuoyi: true });
+    }
+    let user = await userRepo.Get({ id: params.modifyUserId });
+    if (!user) {
+      return R({ Succeed: false, Message: '未能找到用户信息', toRuoyi: true });
+    }
+    user.status = params.status;
+    user.user_id = await userRepo.AddOrUpdate({ model: user, userId: params.userId });
+    if (userRepo.IDIsEmpty(user.user_id)) {
+      return R({ Succeed: false, Message: '数据保存失败' });
+    }
+    return R({ Succeed: true, toRuoyi: true });
+  }
+
+  /** test/public user.service — export（Excel 未接时返回与 list 相同的表格数据） */
+  async systemUserExport(req, reply) {
+    const params = this._params(req);
+    params.isExport = true;
+    return this.systemUserList(req, reply);
+  }
+
+  /** test/public user.service — setAvatar */
+  async systemUserSetAvatar(req, reply) {
+    return R({
+      Succeed: false,
+      Message: '头像上传需配置文件上传服务（原 Moleculer base.public.myupload）',
+      toRuoyi: true,
+    });
+  }
+
+  /** test/public user.service — getSelect2 */
+  async systemUserGetSelect2(req, reply) {
+    const params = this._params(req);
+    return userRepo.getSelect2({
+      selectID: params.selectID,
+      strWhere: params.strWhere,
+      tableName: userRepo.tableName,
+      primaryKey: userRepo.primaryKey,
+      titleName: params.titleName,
+      isKeyAddTitle: params.isKeyAddTitle,
+      pageIndex: params.pageIndex,
+      onePageCount: params.onePageCount,
+      userId: params.userId,
+    });
+  }
+
+  /** test/public user.service — getDatas */
+  async systemUserGetDatas(req, reply) {
+    const params = this._params(req);
+    let datas = [];
+    if (params.ids) {
+      const ids = Array.isArray(params.ids) ? params.ids : String(params.ids).split(',');
+      datas = await userRepo.GetList({ ids });
+    }
+    return R({ Succeed: true, Data: datas });
   }
 
   /**

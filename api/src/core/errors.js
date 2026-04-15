@@ -26,7 +26,16 @@ class AuthError extends AppError {
 function R({ Succeed = false, Message = '', Data = null, Data1 = null, Code = 200, params, notEncryption, toRuoyi = false } = {}) {
   const obj = { Succeed, Message, Data, Data1, Code };
   if (params) Object.assign(obj, params);
-  if (toRuoyi) { obj.code = Succeed ? 200 : 500; obj.msg = Message; obj.data = obj.Data; }
+  if (toRuoyi) {
+    obj.code = Succeed ? 200 : 500;
+    obj.msg = Message;
+    // 与 test util.BaseRetrun 一致：优先 Data；否则使用 params.data（如 getRouters）；勿用 Data=null 覆盖已 merge 的字段
+    if (Data !== undefined && Data !== null) {
+      obj.data = Data;
+    } else if (params && Object.prototype.hasOwnProperty.call(params, 'data')) {
+      obj.data = params.data;
+    }
+  }
   if (notEncryption !== undefined) obj.notEncryption = notEncryption;
   return obj;
 }
