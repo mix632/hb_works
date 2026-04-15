@@ -114,10 +114,17 @@ class RuoyiService extends BaseService {
     app.get(`${p}/system/user/getSelect2`, (req, reply) => this.systemUserGetSelect2(req, reply));
     app.post(`${p}/system/user/getSelect2`, (req, reply) => this.systemUserGetSelect2(req, reply));
     app.get(`${p}/system/user/getDatas`, (req, reply) => this.systemUserGetDatas(req, reply));
+    app.get(`${p}/system/user`, (req, reply) => this.systemUserList(req, reply));
     app.get(`${p}/system/role/list`, (req, reply) => this.systemRoleList(req, reply));
     app.get(`${p}/system/menu/list`, (req, reply) => this.systemMenuList(req, reply));
+    app.get(`${p}/system/menu/roleMenuTreeselect/:roleId`, (req, reply) => this.systemMenuRoleMenuTreeselect(req, reply));
+    app.get(`${p}/system/menu/roleMenuTreeselect`, (req, reply) => this.systemMenuRoleMenuTreeselect(req, reply));
     app.get(`${p}/system/dept/list`, (req, reply) => this.systemDeptList(req, reply));
     app.get(`${p}/system/post/list`, (req, reply) => this.systemPostList(req, reply));
+    app.get(`${p}/system/role/:id`, (req, reply) => this.systemRoleRestGet(req, reply));
+    app.get(`${p}/system/menu/:id`, (req, reply) => this.systemMenuRestGet(req, reply));
+    app.get(`${p}/system/dept/:id`, (req, reply) => this.systemDeptRestGet(req, reply));
+    app.get(`${p}/system/post/:id`, (req, reply) => this.systemPostRestGet(req, reply));
     app.get(`${p}/system/user/:id`, (req, reply) => this.systemUserRestGet(req, reply));
   }
 
@@ -902,6 +909,111 @@ class RuoyiService extends BaseService {
     const out = { code: 0, rows, total: rows.length };
     util.objectDateToString({ model: out });
     return out;
+  }
+
+  /**
+   * 若依：分配角色菜单树（对应 test role.getMenuTree + treeselect，官方路径 /system/menu/roleMenuTreeselect）
+   */
+  async systemMenuRoleMenuTreeselect(req, reply) {
+    const params = this._params(req);
+    const roleId = req.params.roleId ?? params.roleId ?? params.id;
+    const menuRepo = factory.sys_menuRepo;
+    const roleMenuRepo = factory.sys_role_menuRepo;
+    const search = await menuRepo.GetSearchSQL({ searchModel: params, userId: params.userId });
+    let raw = await menuRepo.GetList({ strWhere: search.sql, strParams: search.params });
+    let rows = raw.map((e) => menuModel.data(e));
+    if (!util.parseBool(params.isAll)) {
+      rows = rows.filter((e) => !util.parseBool(e.visible));
+    }
+    const menus = rows.map((e) => ({
+      id: e.menuId,
+      pid: e.parentId,
+      label: e.menuName,
+    }));
+    const roots = menus.filter((e) => !e.pid || e.pid === 0);
+    const diguiMenu = (rs, all) => {
+      for (const i of rs) {
+        i.children = all.filter((el) => el.pid == i.id);
+        if (i.children.length) diguiMenu(i.children, all);
+      }
+    };
+    diguiMenu(roots, menus);
+
+    let checkedKeys = [];
+    if (roleId != null && roleId !== '') {
+      const rm = await roleMenuRepo.GetList({
+        strWhere: `sys_role_menu.role_id = '${sqlEsc(roleId)}'`,
+        userId: params.userId,
+      });
+      checkedKeys = rm.map((e) => e.menu_id);
+    }
+    return R({
+      Succeed: true,
+      Message: '操作成功',
+      toRuoyi: true,
+      Data: roots,
+      params: { checkedKeys },
+    });
+  }
+
+  /** test/public role.service — get */
+  async systemRoleRestGet(req, reply) {
+    const params = this._params(req);
+    const roleRepo = factory.sys_roleRepo;
+    const id = parseInt(req.params.id, 10);
+    if (Number.isNaN(id)) {
+      return R({ Succeed: false, Message: '参数错误', toRuoyi: true });
+    }
+    const data = await roleRepo.Get({ id, isLoadDetailed: true, userId: params.userId });
+    if (!data) {
+      return R({ Succeed: false, Message: '未能找到角色数据', toRuoyi: true });
+    }
+    return R({ Succeed: true, Data: roleModel.data(data), toRuoyi: true });
+  }
+
+  /** test/public menu.service — get */
+  async systemMenuRestGet(req, reply) {
+    const params = this._params(req);
+    const menuRepo = factory.sys_menuRepo;
+    const id = parseInt(req.params.id, 10);
+    if (Number.isNaN(id)) {
+      return R({ Succeed: false, Message: '参数错误', toRuoyi: true });
+    }
+    const data = await menuRepo.Get({ id, userId: params.userId });
+    if (!data) {
+      return R({ Succeed: false, Message: '未能找到菜单数据' });
+    }
+    return R({ Succeed: true, Message: '操作成功', toRuoyi: true, Data: menuModel.data(data) });
+  }
+
+  /** test/public dept.service — get */
+  async systemDeptRestGet(req, reply) {
+    const params = this._params(req);
+    const deptRepo = factory.sys_deptRepo;
+    const id = parseInt(req.params.id, 10);
+    if (Number.isNaN(id)) {
+      return R({ Succeed: false, Message: '参数错误', toRuoyi: true });
+    }
+    const data = await deptRepo.Get({ id, userId: params.userId });
+    if (!data) {
+      return R({ Succeed: false, Message: '未能找到部门数据' });
+    }
+    return R({ Succeed: true, Message: '操作成功', toRuoyi: true, Data: deptModel.data(data) });
+  }
+
+  /** test/public post.service — get */
+  async systemPostRestGet(req, reply) {
+    const params = this._params(req);
+    const postRepo = factory.sys_postRepo;
+    const id = parseInt(req.params.id, 10);
+    if (Number.isNaN(id)) {
+      return R({ Succeed: false, Message: '参数错误', toRuoyi: true });
+    }
+    const data = await postRepo.Get({ id, userId: params.userId });
+    if (!data) {
+      return R({ Succeed: false, Message: '未能找到岗位数据' });
+    }
+    return R({ Succeed: true, Message: '操作成功', toRuoyi: true, Data: postModel.data(data) });
   }
 
   /**
