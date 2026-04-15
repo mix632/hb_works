@@ -56,7 +56,7 @@ class UserService extends BaseService {
     app.post(`${ry}/system/user/getSelect2`, (req, reply) => this.systemUserGetSelect2(req, reply));
     app.get(`${ry}/system/user/getDatas`, (req, reply) => this.systemUserGetDatas(req, reply));
     app.get(`${ry}/system/user`, (req, reply) => this.systemUserList(req, reply));
-    app.post(`${ry}/system/user`, (req, reply) => this.systemUserSave(req, reply));
+    app.post(`${ry}/system/user`, (req, reply) => this.systemUserPut(req, reply));
     app.put(`${ry}/system/user`, (req, reply) => this.systemUserPut(req, reply));
     app.put(`${ry}/system/user/resetPwd`, (req, reply) => this.systemUserResetPwd(req, reply));
     app.post(`${ry}/system/user/resetPwd`, (req, reply) => this.systemUserResetPwd(req, reply));
@@ -64,7 +64,7 @@ class UserService extends BaseService {
     app.get(`${ry}/system/user/:id`, (req, reply) => this.systemUserRestGet(req, reply));
   }
 
-  /** PUT /ruoyi/system/user — 与 POST /system/user/save 一致 */
+  /** PUT|POST /ruoyi/system/user — 根级表单先包成 model（与 PUT 一致） */
   async systemUserPut(req, reply) {
     ensureRuoyiModelBody(req);
     return this.systemUserSave(req, reply);

@@ -30,6 +30,7 @@ class MenuService extends BaseService {
 
     const ry = '/ruoyi';
     app.get(`${ry}/system/menu`, (req, reply) => this.ruoyiSystemList(req, reply));
+    app.post(`${ry}/system/menu`, (req, reply) => this.ruoyiSystemPut(req, reply));
     app.put(`${ry}/system/menu`, (req, reply) => this.ruoyiSystemPut(req, reply));
     app.get(`${ry}/system/menu/list`, (req, reply) => this.ruoyiSystemList(req, reply));
     app.get(`${ry}/system/menu/roleMenuTreeselect/:roleId`, (req, reply) => this.ruoyiRoleMenuTreeselect(req, reply));

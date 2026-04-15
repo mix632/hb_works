@@ -30,6 +30,7 @@ class PostService extends BaseService {
 
     const ry = '/ruoyi';
     app.get(`${ry}/system/post`, (req, reply) => this.ruoyiSystemList(req, reply));
+    app.post(`${ry}/system/post`, (req, reply) => this.ruoyiSystemPut(req, reply));
     app.put(`${ry}/system/post`, (req, reply) => this.ruoyiSystemPut(req, reply));
     app.get(`${ry}/system/post/list`, (req, reply) => this.ruoyiSystemList(req, reply));
     app.delete(`${ry}/system/post/:id`, (req, reply) => this.ruoyiSystemRestDelete(req, reply));

@@ -30,6 +30,7 @@ class DeptService extends BaseService {
 
     const ry = '/ruoyi';
     app.get(`${ry}/system/dept`, (req, reply) => this.ruoyiSystemList(req, reply));
+    app.post(`${ry}/system/dept`, (req, reply) => this.ruoyiSystemPut(req, reply));
     app.put(`${ry}/system/dept`, (req, reply) => this.ruoyiSystemPut(req, reply));
     app.get(`${ry}/system/dept/list`, (req, reply) => this.ruoyiSystemList(req, reply));
     app.get(`${ry}/system/dept/list/exclude/:deptId`, (req, reply) => this.ruoyiSystemListExclude(req, reply));

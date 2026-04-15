@@ -30,6 +30,7 @@ class RoleService extends BaseService {
 
     const ry = '/ruoyi';
     app.get(`${ry}/system/role`, (req, reply) => this.ruoyiSystemList(req, reply));
+    app.post(`${ry}/system/role`, (req, reply) => this.ruoyiSystemPut(req, reply));
     app.put(`${ry}/system/role`, (req, reply) => this.ruoyiSystemPut(req, reply));
     app.get(`${ry}/system/role/list`, (req, reply) => this.ruoyiSystemList(req, reply));
     app.delete(`${ry}/system/role/:id`, (req, reply) => this.ruoyiSystemRestDelete(req, reply));
