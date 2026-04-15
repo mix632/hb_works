@@ -56,6 +56,9 @@ class SysUserRoleRepo extends Dal {
   AddOrUpdate_GetIDZeroSql({ model }) {
     return `sys_user_role.user_id = '${model.user_id}' and sys_user_role.role_id = '${model.role_id}'`;
   }
+  AddOrUpdate_GetExistSql({ model }) {
+    return `sys_user_role.user_id = '${model.user_id}' and sys_user_role.role_id = '${model.role_id}'`;
+  }
 
   GetSearchSQL({ searchModel, userId }) {
     const w = this.safeWhere();

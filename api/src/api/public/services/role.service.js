@@ -30,8 +30,8 @@ class RoleService extends BaseService {
 
     const ry = '/ruoyi';
     app.get(`${ry}/system/role`, (req, reply) => this.ruoyiSystemList(req, reply));
-    app.post(`${ry}/system/role`, (req, reply) => this.ruoyiSystemPut(req, reply));
-    app.put(`${ry}/system/role`, (req, reply) => this.ruoyiSystemPut(req, reply));
+    app.post(`${ry}/system/role`, (req, reply) => this.save(req, reply));
+    app.put(`${ry}/system/role`, (req, reply) => this.save(req, reply));
     app.get(`${ry}/system/role/list`, (req, reply) => this.ruoyiSystemList(req, reply));
     app.delete(`${ry}/system/role/:id`, (req, reply) => this.delete(req, reply));
     app.get(`${ry}/system/role/:id`, (req, reply) => this.ruoyiSystemRestGet(req, reply));
@@ -79,11 +79,6 @@ class RoleService extends BaseService {
     return data;
   }
 
-  async ruoyiSystemPut(req, reply) {
-    ensureRuoyiModelBody(req);
-    return this.save(req, reply);
-  }
-
   /** test/public role.service — get */
   async ruoyiSystemRestGet(req, reply) {
     const params = this._params(req);
@@ -113,17 +108,16 @@ class RoleService extends BaseService {
     return R({ Succeed: true, Data: m });
   }
 
+  /**
+   * test/public/services/role.service.js — save
+   * 1) 事务外 AddOrUpdate（与 test 152 行一致）
+   * 2) Transaction 内再次 AddOrUpdate + sys_role_menu 增删（与 test 153–176 行一致）
+   */
   async save(req, reply) {
+    ensureRuoyiModelBody(req);
     const params = this._params(req);
     if (!params.model) return R({ Succeed: false, Message: '传入参数有误' });
 
-    const result = await this.myService.Transaction(async (db) => {
-      return this._saveImpl(params, db, params.hasOwnProperty('isSaveDetailed') ? params.isSaveDetailed : true);
-    });
-    return result;
-  }
-
-  async _saveImpl(params, db, isSaveDetailed = false) {
     const r = params.model;
     const m = this._dtoFilter(
       this.myModel.CopyData({
@@ -144,17 +138,55 @@ class RoleService extends BaseService {
       }),
       'save',
     );
-    const isAdd = this.myService.IDIsEmpty(m.id);
 
-    m.role_id = await this.myService.AddOrUpdate({ model: m, userId: params.userId, isSaveDetailed, db });
-    let newModel = await this.myService.Get({ id: m.role_id, isLoadDetailed: true, userId: params.userId, db });
-    if (newModel) newModel = this._dtoFilter(this._datesToString(newModel), 'detail');
-    return R({
-      Succeed: !this.myService.IDIsEmpty(m.role_id),
-      Message: !this.myService.IDIsEmpty(m.role_id) ? '保存成功' : '保存失败',
-      Data: m.role_id,
-      Data1: newModel,
+    m.role_id = await this.myService.AddOrUpdate({ model: m });
+
+    const isSaveDetailed = params.hasOwnProperty('isSaveDetailed') ? params.isSaveDetailed : true;
+    const result = await this.myService.Transaction(async (db) => {
+      m.role_id = await this.myService.AddOrUpdate({ model: m, userId: params.userId, isSaveDetailed, db });
+      if (!m.role_id) {
+        return R({ Succeed: false, Message: '数据保存失败' });
+      }
+
+      const roleMenuRepo = this.factory.sys_role_menuRepo;
+      const roleMenus = await roleMenuRepo.GetList({
+        strWhere: `sys_role_menu.role_id = ${m.role_id}`,
+        db,
+        userId: params.userId,
+      });
+
+      let addIds = params.menuIds.filter((e) => !roleMenus.map((e) => e.menu_id).includes(e));
+      if (addIds.length) {
+        addIds = addIds.map((e) => ({ role_id: m.role_id, menu_id: e }));
+        const succeed = await roleMenuRepo.AddOrUpdateList({ models: addIds, userId: params.userId, db });
+        if (!succeed.Succeed) {
+          return succeed;
+        }
+      }
+
+      const deleteIds = roleMenus.map((e) => e.menu_id).filter((e) => !params.menuIds.includes(e));
+      if (deleteIds.length) {
+        const succeed = await roleMenuRepo.Delete({
+          strWhere: `sys_role_menu.role_id = ${m.role_id} and sys_role_menu.menu_id in (${util.SqlStringJoin({ ids: deleteIds })})`,
+          forceExecute: true,
+          userId: params.userId,
+          db,
+        });
+        if (!succeed.Succeed) {
+          return succeed;
+        }
+      }
+
+      let newModel = await this.myService.Get({ id: m.role_id, isLoadDetailed: true, userId: params.userId, db });
+      if (newModel) newModel = this._dtoFilter(this._datesToString(newModel), 'detail');
+      return R({
+        Succeed: true,
+        Message: '数据保存成功',
+        Data: m.role_id,
+        Data1: newModel,
+      });
     });
+    return result;
   }
 
   async delete(req, reply) {

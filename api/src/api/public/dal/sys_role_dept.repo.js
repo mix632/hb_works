@@ -56,6 +56,9 @@ class SysRoleDeptRepo extends Dal {
   AddOrUpdate_GetIDZeroSql({ model }) {
     return `sys_role_dept.role_id = '${model.role_id}' and sys_role_dept.dept_id = '${model.dept_id}'`;
   }
+  AddOrUpdate_GetExistSql({ model }) {
+    return `sys_role_dept.role_id = '${model.role_id}' and sys_role_dept.dept_id = '${model.dept_id}'`;
+  }
 
   GetSearchSQL({ searchModel, userId }) {
     const w = this.safeWhere();

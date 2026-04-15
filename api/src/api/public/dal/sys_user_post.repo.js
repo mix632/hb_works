@@ -56,6 +56,9 @@ class SysUserPostRepo extends Dal {
   AddOrUpdate_GetIDZeroSql({ model }) {
     return `sys_user_post.user_id = '${model.user_id}' and sys_user_post.post_id = '${model.post_id}'`;
   }
+  AddOrUpdate_GetExistSql({ model }) {
+    return `sys_user_post.user_id = '${model.user_id}' and sys_user_post.post_id = '${model.post_id}'`;
+  }
 
   GetSearchSQL({ searchModel, userId }) {
     const w = this.safeWhere();
