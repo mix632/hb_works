@@ -9,11 +9,10 @@ const dto = require('../dto/sys_post.dto');
 const util = require('../../../utils');
 const config = require('../../../core/serverConfig');
 const serviceRegistry = require('../../../core/serviceRegistry');
-const { ensureRuoyiModelBody } = require('./ruoyiUtil');
 
 class PostService extends BaseService {
   constructor() {
-    super({ service: repo, model, prefix: '/public/post', dto });
+    super({ service: repo, model, prefix: '/ruoyi', dto });
   }
 
   get factory() {
@@ -23,18 +22,12 @@ class PostService extends BaseService {
   // ─── 路由：/public/post/*；若依兼容：/ruoyi/system/post* ─────────────────
   registerRoutes(app) {
     const p = this.prefix;
-    app.get(`${p}/get`, (req, reply) => this.get(req, reply));
-    app.post(`${p}/delete`, (req, reply) => this.delete(req, reply));
-    app.get(`${p}/getlist`, (req, reply) => this.getList(req, reply));
-    app.post(`${p}/save`, (req, reply) => this.save(req, reply));
-
-    const ry = '/ruoyi';
-    app.get(`${ry}/system/post`, (req, reply) => this.ruoyiSystemList(req, reply));
-    app.post(`${ry}/system/post`, (req, reply) => this.ruoyiSystemPut(req, reply));
-    app.put(`${ry}/system/post`, (req, reply) => this.ruoyiSystemPut(req, reply));
-    app.get(`${ry}/system/post/list`, (req, reply) => this.ruoyiSystemList(req, reply));
-    app.delete(`${ry}/system/post/:id`, (req, reply) => this.delete(req, reply));
-    app.get(`${ry}/system/post/:id`, (req, reply) => this.ruoyiSystemRestGet(req, reply));
+    app.get(`${p}/system/post`, (req, reply) => this.ruoyiSystemList(req, reply));
+    app.post(`${p}/system/post`, (req, reply) => this.save(req, reply));
+    app.put(`${p}/system/post`, (req, reply) => this.save(req, reply));
+    app.get(`${p}/system/post/list`, (req, reply) => this.ruoyiSystemList(req, reply));
+    app.delete(`${p}/system/post/:id`, (req, reply) => this.delete(req, reply));
+    app.get(`${p}/system/post/:id`, (req, reply) => this.get(req, reply));
   }
 
   /** test/public/services/post.service.js — list */
@@ -45,26 +38,6 @@ class PostService extends BaseService {
     const out = { code: 0, rows, total: rows.length };
     util.objectDateToString({ model: out });
     return out;
-  }
-
-  async ruoyiSystemPut(req, reply) {
-    ensureRuoyiModelBody(req);
-    return this.save(req, reply);
-  }
-
-  /** test/public post.service — get */
-  async ruoyiSystemRestGet(req, reply) {
-    const params = this._params(req);
-    const postRepo = this.factory.sys_postRepo;
-    const id = parseInt(req.params.id, 10);
-    if (Number.isNaN(id)) {
-      return R({ Succeed: false, Message: '参数错误', toRuoyi: true });
-    }
-    const data = await postRepo.Get({ id, userId: params.userId });
-    if (!data) {
-      return R({ Succeed: false, Message: '未能找到岗位数据' });
-    }
-    return R({ Succeed: true, Message: '操作成功', toRuoyi: true, Data: this.myModel.data(data) });
   }
 
   async get(req, reply) {
@@ -78,12 +51,11 @@ class PostService extends BaseService {
     });
 
     m = this._dtoFilter(this._datesToString(m), 'detail');
-    return R({ Succeed: true, Data: m });
+    return R({ Succeed: true, Message: '操作成功', toRuoyi: true, Data: this.myModel.data(m) });
   }
 
   async save(req, reply) {
     const params = this._params(req);
-    if (!params.model) return R({ Succeed: false, Message: '传入参数有误' });
 
     const result = await this.myService.Transaction(async (db) => {
       return this._saveImpl(params, db, params.hasOwnProperty('isSaveDetailed') ? params.isSaveDetailed : true);
@@ -92,7 +64,7 @@ class PostService extends BaseService {
   }
 
   async _saveImpl(params, db, isSaveDetailed = false) {
-    const r = params.model;
+    const r = params;
     const m = this._dtoFilter(
       this.myModel.CopyData({
         post_id: r.post_id ?? r.postId,
@@ -133,44 +105,6 @@ class PostService extends BaseService {
       return R({ Succeed: false, Message: '传入参数有误' });
     });
     return result;
-  }
-
-  async getList(req, reply) {
-    const params = this._params(req);
-    const search = await this.myService.GetSearchSQL({ searchModel: params, userId: params.userId });
-    const strOrder = this.myService.getOrderString(params.sortObj);
-    const isLoadDetailed = params.isLoadDetailed != null ? params.isLoadDetailed : false;
-
-    const data = R({ Succeed: true, Data: {} });
-
-    if (params.isAllData) {
-      const MAX_ALL = 5000;
-      data.Data.Items = await this.myService.GetListForPageIndex({
-        strWhere: search.sql, strParams: search.params,
-        strOrder, pageIndex: 0, onePageCount: MAX_ALL, isLoadDetailed, userId: params.userId,
-      });
-      data.Data.DataTotal = data.Data.Items.length;
-    } else {
-      data.Data.PageIndex = params.PageIndex ? parseInt(params.PageIndex) : 1;
-      data.Data.OnePageCount = params.onePageCount ? parseInt(params.onePageCount) : this.myService.myConfig.dbConfig.onePageCount;
-
-      const cachedTotal = params.DataTotal && params.DataTotal > 0 ? parseInt(params.DataTotal) : 0;
-      const [items, total] = await Promise.all([
-        this.myService.GetListForPageIndex({
-          strWhere: search.sql, strParams: search.params,
-          strOrder, pageIndex: data.Data.PageIndex - 1,
-          onePageCount: data.Data.OnePageCount, isLoadDetailed, userId: params.userId,
-        }),
-        cachedTotal ? Promise.resolve(cachedTotal) : this.myService.Count({
-          strWhere: search.sql, strParams: search.params, userId: params.userId,
-        }),
-      ]);
-      data.Data.Items = items;
-      data.Data.DataTotal = total;
-    }
-
-    data.Data.Items = this._dtoFilter(data.Data.Items, 'list');
-    return this._datesToString(data);
   }
 }
 

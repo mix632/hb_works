@@ -9,11 +9,10 @@ const dto = require('../dto/sys_role.dto');
 const util = require('../../../utils');
 const config = require('../../../core/serverConfig');
 const serviceRegistry = require('../../../core/serviceRegistry');
-const { ensureRuoyiModelBody } = require('./ruoyiUtil');
 
 class RoleService extends BaseService {
   constructor() {
-    super({ service: repo, model, prefix: '/public/role', dto });
+    super({ service: repo, model, prefix: '/ruoyi', dto });
   }
 
   get factory() {
@@ -23,18 +22,12 @@ class RoleService extends BaseService {
   // ─── 路由：/public/role/*；若依兼容：/ruoyi/system/role* ─────────────────
   registerRoutes(app) {
     const p = this.prefix;
-    app.get(`${p}/get`, (req, reply) => this.get(req, reply));
-    app.post(`${p}/delete`, (req, reply) => this.delete(req, reply));
-    app.get(`${p}/getlist`, (req, reply) => this.getList(req, reply));
-    app.post(`${p}/save`, (req, reply) => this.save(req, reply));
-
-    const ry = '/ruoyi';
-    app.get(`${ry}/system/role`, (req, reply) => this.ruoyiSystemList(req, reply));
-    app.post(`${ry}/system/role`, (req, reply) => this.save(req, reply));
-    app.put(`${ry}/system/role`, (req, reply) => this.save(req, reply));
-    app.get(`${ry}/system/role/list`, (req, reply) => this.ruoyiSystemList(req, reply));
-    app.delete(`${ry}/system/role/:id`, (req, reply) => this.delete(req, reply));
-    app.get(`${ry}/system/role/:id`, (req, reply) => this.ruoyiSystemRestGet(req, reply));
+    app.get(`${p}/system/role`, (req, reply) => this.ruoyiSystemList(req, reply));
+    app.post(`${p}/system/role`, (req, reply) => this.save(req, reply));
+    app.put(`${p}/system/role`, (req, reply) => this.save(req, reply));
+    app.get(`${p}/system/role/list`, (req, reply) => this.ruoyiSystemList(req, reply));
+    app.delete(`${p}/system/role/:id`, (req, reply) => this.delete(req, reply));
+    app.get(`${p}/system/role/:id`, (req, reply) => this.get(req, reply));
   }
 
   /** test/public/services/role.service.js — getList */
@@ -79,21 +72,6 @@ class RoleService extends BaseService {
     return data;
   }
 
-  /** test/public role.service — get */
-  async ruoyiSystemRestGet(req, reply) {
-    const params = this._params(req);
-    const roleRepo = this.factory.sys_roleRepo;
-    const id = parseInt(req.params.id, 10);
-    if (Number.isNaN(id)) {
-      return R({ Succeed: false, Message: '参数错误', toRuoyi: true });
-    }
-    const data = await roleRepo.Get({ id, isLoadDetailed: true, userId: params.userId });
-    if (!data) {
-      return R({ Succeed: false, Message: '未能找到角色数据', toRuoyi: true });
-    }
-    return R({ Succeed: true, Data: this.myModel.data(data), toRuoyi: true });
-  }
-
   async get(req, reply) {
     const params = this._params(req);
     let m = params.model;
@@ -105,7 +83,7 @@ class RoleService extends BaseService {
     });
 
     m = this._dtoFilter(this._datesToString(m), 'detail');
-    return R({ Succeed: true, Data: m });
+    return R({ Succeed: true, Data: this.myModel.data(m), toRuoyi: true });
   }
 
   /**
@@ -114,11 +92,9 @@ class RoleService extends BaseService {
    * 2) Transaction 内再次 AddOrUpdate + sys_role_menu 增删（与 test 153–176 行一致）
    */
   async save(req, reply) {
-    ensureRuoyiModelBody(req);
     const params = this._params(req);
-    if (!params.model) return R({ Succeed: false, Message: '传入参数有误' });
 
-    const r = params.model;
+    const r = params;
     const m = this._dtoFilter(
       this.myModel.CopyData({
         role_id: r.role_id ?? r.roleId,
@@ -201,44 +177,6 @@ class RoleService extends BaseService {
       return R({ Succeed: false, Message: '传入参数有误' });
     });
     return result;
-  }
-
-  async getList(req, reply) {
-    const params = this._params(req);
-    const search = await this.myService.GetSearchSQL({ searchModel: params, userId: params.userId });
-    const strOrder = this.myService.getOrderString(params.sortObj);
-    const isLoadDetailed = params.isLoadDetailed != null ? params.isLoadDetailed : false;
-
-    const data = R({ Succeed: true, Data: {} });
-
-    if (params.isAllData) {
-      const MAX_ALL = 5000;
-      data.Data.Items = await this.myService.GetListForPageIndex({
-        strWhere: search.sql, strParams: search.params,
-        strOrder, pageIndex: 0, onePageCount: MAX_ALL, isLoadDetailed, userId: params.userId,
-      });
-      data.Data.DataTotal = data.Data.Items.length;
-    } else {
-      data.Data.PageIndex = params.PageIndex ? parseInt(params.PageIndex) : 1;
-      data.Data.OnePageCount = params.onePageCount ? parseInt(params.onePageCount) : this.myService.myConfig.dbConfig.onePageCount;
-
-      const cachedTotal = params.DataTotal && params.DataTotal > 0 ? parseInt(params.DataTotal) : 0;
-      const [items, total] = await Promise.all([
-        this.myService.GetListForPageIndex({
-          strWhere: search.sql, strParams: search.params,
-          strOrder, pageIndex: data.Data.PageIndex - 1,
-          onePageCount: data.Data.OnePageCount, isLoadDetailed, userId: params.userId,
-        }),
-        cachedTotal ? Promise.resolve(cachedTotal) : this.myService.Count({
-          strWhere: search.sql, strParams: search.params, userId: params.userId,
-        }),
-      ]);
-      data.Data.Items = items;
-      data.Data.DataTotal = total;
-    }
-
-    data.Data.Items = this._dtoFilter(data.Data.Items, 'list');
-    return this._datesToString(data);
   }
 }
 

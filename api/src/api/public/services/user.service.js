@@ -57,7 +57,7 @@ class UserService extends BaseService {
     app.get(`${ry}/system/user/getDatas`, (req, reply) => this.systemUserGetDatas(req, reply));
     app.get(`${ry}/system/user`, (req, reply) => this.systemUserList(req, reply));
     app.post(`${ry}/system/user`, (req, reply) => this.systemUserPut(req, reply));
-    app.put(`${ry}/system/user`, (req, reply) => this.systemUserPut(req, reply));
+    app.put(`${ry}/system/user`, (req, reply) => this.get(req, reply));
     app.put(`${ry}/system/user/resetPwd`, (req, reply) => this.systemUserResetPwd(req, reply));
     app.post(`${ry}/system/user/resetPwd`, (req, reply) => this.systemUserResetPwd(req, reply));
     app.delete(`${ry}/system/user/:id`, (req, reply) => this.delete(req, reply));
