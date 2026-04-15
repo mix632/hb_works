@@ -40,6 +40,30 @@ function copyObj(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
 
+/** 扁平部门列表 → 树（id / pid / label / children，与 test/public user.deptTree 一致） */
+function buildDeptTreeFromFlat(flat) {
+  const nodes = flat.map((d) => ({
+    id: d.id,
+    pid: d.pid,
+    label: d.label,
+    children: [],
+  }));
+  const byId = new Map(nodes.map((n) => [String(n.id), n]));
+  const roots = [];
+  for (const n of nodes) {
+    const pid = n.pid;
+    const isRoot = pid == null || pid === '' || String(pid) === '0';
+    if (isRoot) {
+      roots.push(n);
+    } else {
+      const p = byId.get(String(pid));
+      if (p) p.children.push(n);
+      else roots.push(n);
+    }
+  }
+  return roots;
+}
+
 class RuoyiService extends BaseService {
   constructor() {
     super({
@@ -65,6 +89,8 @@ class RuoyiService extends BaseService {
     app.put(`${p}/system/user/profile/updatePwd`, (req, reply) => this.updatePwd(req, reply));
     app.post(`${p}/system/user/profile/updatePwd`, (req, reply) => this.updatePwd(req, reply));
     app.post(`${p}/resetPwd`, (req, reply) => this.resetPwd(req, reply));
+    app.get(`${p}/system/user/list`, (req, reply) => this.systemUserList(req, reply));
+    app.get(`${p}/system/user/deptTree`, (req, reply) => this.systemDeptTree(req, reply));
   }
 
   _clientIp(req) {
@@ -499,6 +525,119 @@ class RuoyiService extends BaseService {
       return R({ Succeed: false, Message: '修改密码失败', toRuoyi: true });
     }
     return R({ Succeed: true, Message: '修改密码成功', toRuoyi: true });
+  }
+
+  /**
+   * 若依用户列表（与 test/public/services/user.service.js getList 一致：code/rows/total）
+   */
+  async systemUserList(req, reply) {
+    const params = this._params(req);
+    const userRepo = factory.sys_userRepo;
+    const deptRepo = factory.sys_deptRepo;
+
+    let sql = '';
+    if (params.userName) {
+      sql = util.AppendSQL({ oldSql: sql, appendSQL: `sys_user.user_name like '%${sqlEsc(params.userName)}%'` });
+    }
+    if (params.phonenumber) {
+      sql = util.AppendSQL({ oldSql: sql, appendSQL: `sys_user.phonenumber like '%${sqlEsc(params.phonenumber)}%'` });
+    }
+    if (params.status) {
+      sql = util.AppendSQL({ oldSql: sql, appendSQL: `sys_user.status = '${sqlEsc(params.status)}'` });
+    }
+    if (params.deptId) {
+      const did = sqlEsc(params.deptId);
+      const innerSql = `WITH RECURSIVE department_tree AS (
+        SELECT dept_id FROM sys_dept WHERE dept_id = '${did}'
+        UNION ALL
+        SELECT d.dept_id FROM sys_dept d JOIN department_tree dt ON d.parent_id = dt.dept_id
+      )
+      SELECT dept_id FROM department_tree WHERE dept_id != '${did}'`;
+      sql = util.AppendSQL({
+        oldSql: sql,
+        appendSQL: `sys_user.dept_id = '${did}' or sys_user.dept_id in (${innerSql})`,
+      });
+    }
+    const beginTime = params['params[beginTime]'] || (params.params && params.params.beginTime);
+    const endTime = params['params[endTime]'] || (params.params && params.params.endTime);
+    if (beginTime) {
+      sql = util.AppendSQL({ oldSql: sql, appendSQL: `sys_user.create_time >= '${sqlEsc(beginTime)}'` });
+    }
+    if (endTime) {
+      sql = util.AppendSQL({ oldSql: sql, appendSQL: `sys_user.create_time <= '${sqlEsc(endTime)} 23:59:59'` });
+    }
+
+    const deptList = await deptRepo.GetList({ strWhere: '' });
+    const deptMap = {};
+    for (const dept of deptList) {
+      deptMap[dept.dept_id] = {
+        deptId: dept.dept_id,
+        deptName: dept.dept_name,
+        leader: dept.leader,
+      };
+    }
+
+    const pageNum = Math.max(1, parseInt(params.pageNum, 10) || 1);
+    const pageSize = Math.max(1, parseInt(params.pageSize, 10) || 10);
+    const strOrder = 'sys_user.user_id';
+
+    const [userList, total] = await Promise.all([
+      userRepo.GetListForPageIndex({
+        strWhere: sql,
+        pageIndex: pageNum - 1,
+        onePageCount: pageSize,
+        strOrder,
+        userId: params.userId,
+      }),
+      userRepo.Count({ strWhere: sql, userId: params.userId }),
+    ]);
+
+    const rows = [];
+    for (const user of userList) {
+      rows.push({
+        createBy: user.create_by,
+        createTime: user.create_time,
+        updateBy: user.update_by,
+        remark: user.remark,
+        userId: user.user_id,
+        deptId: user.dept_id,
+        userName: user.user_name,
+        nickName: user.nick_name,
+        email: user.email,
+        phonenumber: user.phonenumber,
+        sex: user.sex,
+        avatar: user.avatar,
+        password: user.password,
+        status: user.status,
+        delFlag: user.del_flag,
+        loginIp: user.login_ip,
+        loginDate: user.login_date,
+        admin: user.user_name === 'admin',
+        dept: deptMap[user.dept_id],
+        is_all_bag: user.is_all_bag,
+        bag_ids: user.bag_ids,
+      });
+    }
+
+    const data = { code: 0, rows, total };
+    util.objectDateToString({ model: data });
+    return data;
+  }
+
+  /**
+   * 部门树（与 test/public/services/user.service.js deptTree 一致）
+   */
+  async systemDeptTree(req, reply) {
+    const deptRepo = factory.sys_deptRepo;
+    const deptList = await deptRepo.GetList({ strWhere: '' });
+    const flat = deptList.map((dept) => ({
+      id: dept.dept_id,
+      pid: dept.parent_id,
+      label: dept.dept_name,
+      children: [],
+    }));
+    const tree = buildDeptTreeFromFlat(flat);
+    return R({ Succeed: true, Data: tree, toRuoyi: true });
   }
 }
 
