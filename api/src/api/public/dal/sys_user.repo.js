@@ -36,11 +36,17 @@ class SysUserRepo extends Dal {
     if (!isLoadDetailed) return;
 
     const factory = require('../factory');
+    const fileRepo = factory.system_fileRepo;
     const ids = datas.map(e => this.GetModelID({ model: e }));
     if (ids.length) {
-      let files = await this.myConfig.broker.call('public.file.GetFilesForName', { params: { fileType: 'sys_user', TargetIDs: ids, userId: userId, db: db } });
-      for (let i of datas) {
-        i.files = files.filter((e) => e.TargetID == i.user_id);
+      const files = await fileRepo.GetFilesForName({
+        fileType: 'sys_user',
+        TargetIDs: ids,
+        userId,
+        db,
+      });
+      for (const row of datas) {
+        row.files = files.filter((f) => f.TargetID == row.user_id);
       }
     }
   }
@@ -51,20 +57,19 @@ class SysUserRepo extends Dal {
       return m.user_id;
     }
 
-    if (m.files && m.files.length > 0) {
-      for (let i of m.files) {
-        i.TargetID = m.user_id;
+    if (m.files != null) {
+      for (const f of m.files) {
+        f.TargetID = m.user_id;
       }
-    }
-    let filesSaveSucceed = await this.myConfig.broker.call('public.file.AddOrUpdateMulti', {
-      params: {
+      const factory = require('../factory');
+      await factory.system_fileRepo.AddOrUpdateMulti({
         files: m.files,
         name: 'sys_user',
         tableId: m.user_id,
-        userId: userId,
-        db: db,
-      },
-    });
+        userId,
+        db,
+      });
+    }
     return m.user_id;
   }
   /**
