@@ -120,6 +120,7 @@ class RuoyiService extends BaseService {
     app.get(`${p}/system/menu/roleMenuTreeselect/:roleId`, (req, reply) => this.systemMenuRoleMenuTreeselect(req, reply));
     app.get(`${p}/system/menu/roleMenuTreeselect`, (req, reply) => this.systemMenuRoleMenuTreeselect(req, reply));
     app.get(`${p}/system/dept/list`, (req, reply) => this.systemDeptList(req, reply));
+    app.get(`${p}/system/dept/list/exclude/:deptId`, (req, reply) => this.systemDeptListExclude(req, reply));
     app.get(`${p}/system/post/list`, (req, reply) => this.systemPostList(req, reply));
     app.get(`${p}/system/role/:id`, (req, reply) => this.systemRoleRestGet(req, reply));
     app.get(`${p}/system/menu/:id`, (req, reply) => this.systemMenuRestGet(req, reply));
@@ -897,6 +898,30 @@ class RuoyiService extends BaseService {
     const deptRepo = factory.sys_deptRepo;
     const menus = await deptRepo.GetList({ strWhere: '' });
     const data = menus.map((e) => deptModel.data(e));
+    return R({ Succeed: true, Message: '操作成功', toRuoyi: true, params: { data } });
+  }
+
+  /**
+   * 若依官方：GET /system/dept/list/exclude/{deptId} — 选上级部门时排除本部门及子孙（祖级 ancestors 含该 id 的节点）
+   * （test/public dept.list_exclude 路径写成 /system/menu 且 SQL 不同，此处按 RuoYi Java 行为实现）
+   */
+  async systemDeptListExclude(req, reply) {
+    const excludeId = parseInt(req.params.deptId, 10);
+    if (Number.isNaN(excludeId)) {
+      return R({ Succeed: false, Message: '参数错误', toRuoyi: true });
+    }
+    const deptRepo = factory.sys_deptRepo;
+    const all = await deptRepo.GetList({ strWhere: '' });
+    const idStr = String(excludeId);
+    const filtered = all.filter((row) => {
+      if (Number(row.dept_id) === excludeId) return false;
+      const parts = String(row.ancestors || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      return !parts.includes(idStr);
+    });
+    const data = filtered.map((e) => deptModel.data(e));
     return R({ Succeed: true, Message: '操作成功', toRuoyi: true, params: { data } });
   }
 
