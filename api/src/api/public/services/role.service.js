@@ -32,6 +32,7 @@ class RoleService extends BaseService {
     app.get(`${ry}/system/role`, (req, reply) => this.ruoyiSystemList(req, reply));
     app.put(`${ry}/system/role`, (req, reply) => this.ruoyiSystemPut(req, reply));
     app.get(`${ry}/system/role/list`, (req, reply) => this.ruoyiSystemList(req, reply));
+    app.delete(`${ry}/system/role/:id`, (req, reply) => this.ruoyiSystemRestDelete(req, reply));
     app.get(`${ry}/system/role/:id`, (req, reply) => this.ruoyiSystemRestGet(req, reply));
   }
 
@@ -80,6 +81,17 @@ class RoleService extends BaseService {
   async ruoyiSystemPut(req, reply) {
     ensureRuoyiModelBody(req);
     return this.save(req, reply);
+  }
+
+  /** DELETE /ruoyi/system/role/:id */
+  async ruoyiSystemRestDelete(req, reply) {
+    const prev = req.query;
+    req.query = { ...(prev || {}), role_id: req.params.id };
+    try {
+      return await this.delete(req, reply);
+    } finally {
+      req.query = prev;
+    }
   }
 
   /** test/public role.service — get */

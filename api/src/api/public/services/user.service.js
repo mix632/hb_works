@@ -60,6 +60,7 @@ class UserService extends BaseService {
     app.put(`${ry}/system/user`, (req, reply) => this.systemUserPut(req, reply));
     app.put(`${ry}/system/user/resetPwd`, (req, reply) => this.systemUserResetPwd(req, reply));
     app.post(`${ry}/system/user/resetPwd`, (req, reply) => this.systemUserResetPwd(req, reply));
+    app.delete(`${ry}/system/user/:id`, (req, reply) => this.ruoyiSystemRestDelete(req, reply));
     app.get(`${ry}/system/user/:id`, (req, reply) => this.systemUserRestGet(req, reply));
   }
 
@@ -67,6 +68,17 @@ class UserService extends BaseService {
   async systemUserPut(req, reply) {
     ensureRuoyiModelBody(req);
     return this.systemUserSave(req, reply);
+  }
+
+  /** DELETE /ruoyi/system/user/:id */
+  async ruoyiSystemRestDelete(req, reply) {
+    const prev = req.query;
+    req.query = { ...(prev || {}), id: req.params.id };
+    try {
+      return await this.systemUserDelete(req, reply);
+    } finally {
+      req.query = prev;
+    }
   }
 
   async updatePwd(req, reply) {

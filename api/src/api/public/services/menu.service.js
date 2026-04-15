@@ -34,6 +34,9 @@ class MenuService extends BaseService {
     app.get(`${ry}/system/menu/list`, (req, reply) => this.ruoyiSystemList(req, reply));
     app.get(`${ry}/system/menu/roleMenuTreeselect/:roleId`, (req, reply) => this.ruoyiRoleMenuTreeselect(req, reply));
     app.get(`${ry}/system/menu/roleMenuTreeselect`, (req, reply) => this.ruoyiRoleMenuTreeselect(req, reply));
+    app.post(`${ry}/system/menu/copy`, (req, reply) => this.ruoyiMenuCopy(req, reply));
+    app.get(`${ry}/system/menu/copy/:menuId`, (req, reply) => this.ruoyiMenuCopy(req, reply));
+    app.delete(`${ry}/system/menu/:id`, (req, reply) => this.ruoyiSystemRestDelete(req, reply));
     app.get(`${ry}/system/menu/:id`, (req, reply) => this.ruoyiSystemRestGet(req, reply));
   }
 
@@ -53,6 +56,45 @@ class MenuService extends BaseService {
   async ruoyiSystemPut(req, reply) {
     ensureRuoyiModelBody(req);
     return this.save(req, reply);
+  }
+
+  /** test/public menu.service — copy（POST body / GET :menuId） */
+  async ruoyiMenuCopy(req, reply) {
+    const params = this._params(req);
+    const rawId = req.params.menuId ?? params.menuId ?? params.id;
+    const sourceId = rawId != null && rawId !== '' ? parseInt(rawId, 10) : NaN;
+    if (Number.isNaN(sourceId)) {
+      return R({ Succeed: false, Message: '缺少或无效的菜单 id', toRuoyi: true });
+    }
+    let m = await this.myService.Get({ id: sourceId, isLoadDetailed: true, userId: params.userId });
+    if (!m) {
+      return R({ Succeed: false, Message: '未能找到复制源数据', toRuoyi: true });
+    }
+    m.menu_id = 0;
+    m.order_num = 0;
+    m.menu_name = `${m.menu_name} 复制`;
+    m.menu_id = await this.myService.AddOrUpdate({ model: m, userId: params.userId });
+    if (this.myService.IDIsEmpty(m.menu_id)) {
+      return R({ Succeed: false, Message: '菜单复制失败', toRuoyi: true });
+    }
+    const saved = await this.myService.Get({ id: m.menu_id, isLoadDetailed: true, userId: params.userId });
+    return R({
+      Succeed: true,
+      Message: '菜单复制成功，请编辑',
+      Data: saved ? this.myModel.data(saved) : null,
+      toRuoyi: true,
+    });
+  }
+
+  /** DELETE /ruoyi/system/menu/:id */
+  async ruoyiSystemRestDelete(req, reply) {
+    const prev = req.query;
+    req.query = { ...(prev || {}), menu_id: req.params.id };
+    try {
+      return await this.delete(req, reply);
+    } finally {
+      req.query = prev;
+    }
   }
 
   /**
