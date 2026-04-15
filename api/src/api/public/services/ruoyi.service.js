@@ -23,6 +23,10 @@ const roleModel = require('../model/sys_role.model');
 const menuModel = require('../model/sys_menu.model');
 const userRoleModel = require('../model/sys_user_role.model');
 const userPostModel = require('../model/sys_user_post.model');
+const roleSvc = require('./role.service');
+const menuSvc = require('./menu.service');
+const deptSvc = require('./dept.service');
+const postSvc = require('./post.service');
 
 function md5Hex(str) {
   return crypto.createHash('md5').update(String(str || ''), 'utf8').digest('hex');
@@ -115,12 +119,24 @@ class RuoyiService extends BaseService {
     app.post(`${p}/system/user/getSelect2`, (req, reply) => this.systemUserGetSelect2(req, reply));
     app.get(`${p}/system/user/getDatas`, (req, reply) => this.systemUserGetDatas(req, reply));
     app.get(`${p}/system/user`, (req, reply) => this.systemUserList(req, reply));
+    app.post(`${p}/system/user`, (req, reply) => this.systemUserSave(req, reply));
+    app.put(`${p}/system/user`, (req, reply) => this.systemUserPut(req, reply));
+    app.put(`${p}/system/user/resetPwd`, (req, reply) => this.systemUserResetPwd(req, reply));
+    app.post(`${p}/system/user/resetPwd`, (req, reply) => this.systemUserResetPwd(req, reply));
+    app.get(`${p}/system/role`, (req, reply) => this.systemRoleList(req, reply));
+    app.put(`${p}/system/role`, (req, reply) => this.systemRolePut(req, reply));
     app.get(`${p}/system/role/list`, (req, reply) => this.systemRoleList(req, reply));
+    app.get(`${p}/system/menu`, (req, reply) => this.systemMenuList(req, reply));
+    app.put(`${p}/system/menu`, (req, reply) => this.systemMenuPut(req, reply));
     app.get(`${p}/system/menu/list`, (req, reply) => this.systemMenuList(req, reply));
     app.get(`${p}/system/menu/roleMenuTreeselect/:roleId`, (req, reply) => this.systemMenuRoleMenuTreeselect(req, reply));
     app.get(`${p}/system/menu/roleMenuTreeselect`, (req, reply) => this.systemMenuRoleMenuTreeselect(req, reply));
+    app.get(`${p}/system/dept`, (req, reply) => this.systemDeptList(req, reply));
+    app.put(`${p}/system/dept`, (req, reply) => this.systemDeptPut(req, reply));
     app.get(`${p}/system/dept/list`, (req, reply) => this.systemDeptList(req, reply));
     app.get(`${p}/system/dept/list/exclude/:deptId`, (req, reply) => this.systemDeptListExclude(req, reply));
+    app.get(`${p}/system/post`, (req, reply) => this.systemPostList(req, reply));
+    app.put(`${p}/system/post`, (req, reply) => this.systemPostPut(req, reply));
     app.get(`${p}/system/post/list`, (req, reply) => this.systemPostList(req, reply));
     app.get(`${p}/system/role/:id`, (req, reply) => this.systemRoleRestGet(req, reply));
     app.get(`${p}/system/menu/:id`, (req, reply) => this.systemMenuRestGet(req, reply));
@@ -549,18 +565,50 @@ class RuoyiService extends BaseService {
   }
 
   async resetPwd(req, reply) {
+    const b = req.body || {};
     const params = this._params(req);
+    const fromBody = b.userId != null && b.userId !== '' ? parseInt(b.userId, 10) : NaN;
+    const targetUserId = !Number.isNaN(fromBody) ? fromBody : params.userId;
     const userRepo = factory.sys_userRepo;
-    const user = await userRepo.Get({ id: params.userId });
+    const user = await userRepo.Get({ id: targetUserId });
     if (!user) {
       return R({ Succeed: false, Message: '未能获取用户信息', toRuoyi: true });
     }
-    user.password = md5Hex(params.password);
+    user.password = md5Hex(b.password ?? params.password);
     user.user_id = await userRepo.AddOrUpdate({ model: user });
     if (userRepo.IDIsEmpty(user.user_id)) {
       return R({ Succeed: false, Message: '修改密码失败', toRuoyi: true });
     }
     return R({ Succeed: true, Message: '修改密码成功', toRuoyi: true });
+  }
+
+  /**
+   * 若依：管理员重置用户密码 — PUT|POST /system/user/resetPwd（body.userId 为被重置用户，避免 _params 里 JWT userId 覆盖）
+   */
+  async systemUserResetPwd(req, reply) {
+    const b = req.body || {};
+    const q = req.query || {};
+    let targetId = b.userId ?? b.user_id ?? q.userId ?? q.user_id;
+    if (targetId != null && targetId !== '') {
+      targetId = parseInt(targetId, 10);
+    } else {
+      targetId = this._params(req).userId;
+    }
+    const password = b.password ?? q.password;
+    if (password == null || password === '') {
+      return R({ Succeed: false, Message: '请输入新密码', toRuoyi: true });
+    }
+    const repo = factory.sys_userRepo;
+    const user = await repo.Get({ id: targetId });
+    if (!user) {
+      return R({ Succeed: false, Message: '未能获取用户信息', toRuoyi: true });
+    }
+    user.password = md5Hex(password);
+    user.user_id = await repo.AddOrUpdate({ model: user });
+    if (repo.IDIsEmpty(user.user_id)) {
+      return R({ Succeed: false, Message: '重置密码失败', toRuoyi: true });
+    }
+    return R({ Succeed: true, Message: '重置密码成功', toRuoyi: true });
   }
 
   /** test/public user.service — get */
