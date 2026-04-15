@@ -8,7 +8,7 @@ const fs = require('fs');
  * 文件名 biz_customer.repo.js → 属性名 biz_customerRepo
  * 首次访问时才 require，避免循环依赖
  */
-class CdpFactory {
+class PublicFactory {
   static _init() {
     if (this._initialized) return;
     this._initialized = true;
@@ -33,6 +33,6 @@ class CdpFactory {
   }
 }
 
-CdpFactory._init();
+PublicFactory._init();
 
-module.exports = CdpFactory;
+module.exports = PublicFactory;
