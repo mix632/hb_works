@@ -37,6 +37,8 @@ class MenuService extends BaseService {
     app.get(`${ry}/system/menu/roleMenuTreeselect`, (req, reply) => this.ruoyiRoleMenuTreeselect(req, reply));
     app.post(`${ry}/system/menu/copy`, (req, reply) => this.ruoyiMenuCopy(req, reply));
     app.get(`${ry}/system/menu/copy/:menuId`, (req, reply) => this.ruoyiMenuCopy(req, reply));
+    /** 必须在 /:id 之前，否则 treeselect 会被当成 id 导致「参数错误」 */
+    app.get(`${ry}/system/menu/treeselect`, (req, reply) => this.ruoyiMenuTreeselect(req, reply));
     app.delete(`${ry}/system/menu/:id`, (req, reply) => this.ruoyiSystemRestDelete(req, reply));
     app.get(`${ry}/system/menu/:id`, (req, reply) => this.ruoyiSystemRestGet(req, reply));
   }
@@ -140,6 +142,39 @@ class MenuService extends BaseService {
       toRuoyi: true,
       Data: roots,
       params: { checkedKeys },
+    });
+  }
+
+  /**
+   * 若依 GET /system/menu/treeselect — 上级菜单等下拉树（无 role 勾选，与 Java buildMenuTreeSelect 类似）
+   */
+  async ruoyiMenuTreeselect(req, reply) {
+    const params = this._params(req);
+    const menuRepo = this.factory.sys_menuRepo;
+    const search = await menuRepo.GetSearchSQL({ searchModel: params, userId: params.userId });
+    let raw = await menuRepo.GetList({ strWhere: search.sql, strParams: search.params });
+    let rows = raw.map((e) => this.myModel.data(e));
+    if (!util.parseBool(params.isAll)) {
+      rows = rows.filter((e) => !util.parseBool(e.visible));
+    }
+    const menus = rows.map((e) => ({
+      id: e.menuId,
+      pid: e.parentId,
+      label: e.menuName,
+    }));
+    const roots = menus.filter((e) => !e.pid || e.pid === 0);
+    const diguiMenu = (rs, all) => {
+      for (const i of rs) {
+        i.children = all.filter((el) => el.pid == i.id);
+        if (i.children.length) diguiMenu(i.children, all);
+      }
+    };
+    diguiMenu(roots, menus);
+    return R({
+      Succeed: true,
+      Message: '操作成功',
+      toRuoyi: true,
+      Data: roots,
     });
   }
 
