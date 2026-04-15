@@ -2,6 +2,7 @@
 
 const { Dal } = require('../../../core/dal');
 const model = require('../model/sys_user.model');
+const factory = require('../factory');
 
 /**
  * sys_user — 核心表
@@ -35,11 +36,9 @@ class SysUserRepo extends Dal {
     if (!datas || !datas.length) return;
     if (!isLoadDetailed) return;
 
-    const factory = require('../factory');
-    const fileRepo = factory.system_fileRepo;
     const ids = datas.map(e => this.GetModelID({ model: e }));
     if (ids.length) {
-      const files = await fileRepo.GetFilesForName({
+      const files = await factory.system_fileRepo.GetFilesForName({
         fileType: 'sys_user',
         TargetIDs: ids,
         userId,
@@ -57,11 +56,10 @@ class SysUserRepo extends Dal {
       return m.user_id;
     }
 
-    if (m.files != null) {
+    if (m.files？.length) {
       for (const f of m.files) {
         f.TargetID = m.user_id;
       }
-      const factory = require('../factory');
       await factory.system_fileRepo.AddOrUpdateMulti({
         files: m.files,
         name: 'sys_user',
