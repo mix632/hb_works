@@ -45,6 +45,7 @@ class UserService extends BaseService {
     app.post(`${ry}/system/user/save`, (req, reply) => this.systemUserSave(req, reply));
     app.post(`${ry}/system/user/delete`, (req, reply) => this.systemUserDelete(req, reply));
     app.get(`${ry}/system/user/profile`, (req, reply) => this.systemUserProfile(req, reply));
+    app.put(`${ry}/system/user/profile`, (req, reply) => this.systemUserProfileSave(req, reply));
     app.put(`${ry}/system/user/profileSave`, (req, reply) => this.systemUserProfileSave(req, reply));
     app.post(`${ry}/system/user/profileSave`, (req, reply) => this.systemUserProfileSave(req, reply));
     app.put(`${ry}/system/user/changeStatus`, (req, reply) => this.systemUserChangeStatus(req, reply));
