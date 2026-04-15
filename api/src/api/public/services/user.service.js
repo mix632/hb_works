@@ -14,7 +14,7 @@ const postModel = require('../model/sys_post.model');
 const roleModel = require('../model/sys_role.model');
 const userRoleModel = require('../model/sys_user_role.model');
 const userPostModel = require('../model/sys_user_post.model');
-const { sqlEsc, md5Hex, ensureRuoyiModelBody, buildDeptTreeFromFlat } = require('./ruoyiUtil');
+const { sqlEsc, md5Hex } = require('./ruoyiUtil');
 
 class UserService extends BaseService {
   constructor() {
@@ -56,18 +56,12 @@ class UserService extends BaseService {
     app.post(`${ry}/system/user/getSelect2`, (req, reply) => this.systemUserGetSelect2(req, reply));
     app.get(`${ry}/system/user/getDatas`, (req, reply) => this.systemUserGetDatas(req, reply));
     app.get(`${ry}/system/user`, (req, reply) => this.systemUserList(req, reply));
-    app.post(`${ry}/system/user`, (req, reply) => this.systemUserPut(req, reply));
-    app.put(`${ry}/system/user`, (req, reply) => this.get(req, reply));
+    // app.post(`${ry}/system/user`, (req, reply) => this.systemUserPut(req, reply));
+    app.put(`${ry}/system/user`, (req, reply) => this.systemUserSave(req, reply));
     app.put(`${ry}/system/user/resetPwd`, (req, reply) => this.systemUserResetPwd(req, reply));
     app.post(`${ry}/system/user/resetPwd`, (req, reply) => this.systemUserResetPwd(req, reply));
     app.delete(`${ry}/system/user/:id`, (req, reply) => this.delete(req, reply));
     app.get(`${ry}/system/user/:id`, (req, reply) => this.systemUserRestGet(req, reply));
-  }
-
-  /** PUT|POST /ruoyi/system/user — 根级表单先包成 model（与 PUT 一致） */
-  async systemUserPut(req, reply) {
-    ensureRuoyiModelBody(req);
-    return this.systemUserSave(req, reply);
   }
 
   async updatePwd(req, reply) {
@@ -481,6 +475,30 @@ class UserService extends BaseService {
     return data;
   }
 
+
+  /** 扁平部门列表 → 树（id / pid / label / children，与 test/public user.deptTree 一致） */
+  _buildDeptTreeFromFlat(flat) {
+    const nodes = flat.map((d) => ({
+      id: d.id,
+      pid: d.pid,
+      label: d.label,
+      children: [],
+    }));
+    const byId = new Map(nodes.map((n) => [String(n.id), n]));
+    const roots = [];
+    for (const n of nodes) {
+      const pid = n.pid;
+      const isRoot = pid == null || pid === '' || String(pid) === '0';
+      if (isRoot) {
+        roots.push(n);
+      } else {
+        const p = byId.get(String(pid));
+        if (p) p.children.push(n);
+        else roots.push(n);
+      }
+    }
+    return roots;
+  }
   /** 部门树 — /system/user/deptTree */
   async systemDeptTree(req, reply) {
     const deptRepo = this.factory.sys_deptRepo;
@@ -491,7 +509,7 @@ class UserService extends BaseService {
       label: d.dept_name,
       children: [],
     }));
-    const tree = buildDeptTreeFromFlat(flat);
+    const tree = this._buildDeptTreeFromFlat(flat);
     return R({ Succeed: true, Data: tree, toRuoyi: true });
   }
 
