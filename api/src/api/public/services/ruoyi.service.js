@@ -2,8 +2,9 @@
 
 /**
  * 若依风格接口
- * - 核心路由：test/public/services/ruoyi.service.js
- * - /ruoyi/system/user/*：test/public/services/user.service.js（原 Moleculer rest: /ruoyi/system/user）
+ * - 核心：test/public/services/ruoyi.service.js
+ * - user：test/public/services/user.service.js（/ruoyi/system/user/*）
+ * - role/menu/dept/post 列表等：对应 test/public/services/*.service.js
  */
 
 const crypto = require('crypto');
@@ -19,6 +20,7 @@ const userModel = require('../model/sys_user.model');
 const deptModel = require('../model/sys_dept.model');
 const postModel = require('../model/sys_post.model');
 const roleModel = require('../model/sys_role.model');
+const menuModel = require('../model/sys_menu.model');
 const userRoleModel = require('../model/sys_user_role.model');
 const userPostModel = require('../model/sys_user_post.model');
 
@@ -112,6 +114,11 @@ class RuoyiService extends BaseService {
     app.get(`${p}/system/user/getSelect2`, (req, reply) => this.systemUserGetSelect2(req, reply));
     app.post(`${p}/system/user/getSelect2`, (req, reply) => this.systemUserGetSelect2(req, reply));
     app.get(`${p}/system/user/getDatas`, (req, reply) => this.systemUserGetDatas(req, reply));
+    app.get(`${p}/system/role/list`, (req, reply) => this.systemRoleList(req, reply));
+    app.get(`${p}/system/menu/list`, (req, reply) => this.systemMenuList(req, reply));
+    app.get(`${p}/system/dept/list`, (req, reply) => this.systemDeptList(req, reply));
+    app.get(`${p}/system/post/list`, (req, reply) => this.systemPostList(req, reply));
+    app.get(`${p}/system/user/:id`, (req, reply) => this.systemUserRestGet(req, reply));
   }
 
   _clientIp(req) {
@@ -807,6 +814,94 @@ class RuoyiService extends BaseService {
       datas = await userRepo.GetList({ ids });
     }
     return R({ Succeed: true, Data: datas });
+  }
+
+  /**
+   * 若依 Vue 常见请求：GET /ruoyi/system/user/123（与 /system/user/get?id=123 等价）
+   */
+  async systemUserRestGet(req, reply) {
+    const prevQuery = req.query;
+    req.query = { ...(prevQuery || {}), id: req.params.id };
+    try {
+      return await this.systemUserGet(req, reply);
+    } finally {
+      req.query = prevQuery;
+    }
+  }
+
+  /** test/public/services/role.service.js — getList */
+  async systemRoleList(req, reply) {
+    const params = this._params(req);
+    const roleRepo = factory.sys_roleRepo;
+    const pageNum = Math.max(1, parseInt(params.pageNum, 10) || 1);
+    const pageSize = Math.max(1, parseInt(params.pageSize, 10) || 10);
+    const [roleList, total] = await Promise.all([
+      roleRepo.GetListForPageIndex({
+        strWhere: '',
+        pageIndex: pageNum - 1,
+        onePageCount: pageSize,
+        strOrder: 'sys_role.role_id',
+        userId: params.userId,
+      }),
+      roleRepo.Count({ strWhere: '', userId: params.userId }),
+    ]);
+    const rows = [];
+    for (const role of roleList) {
+      rows.push({
+        createBy: role.create_by,
+        createTime: role.create_time,
+        updateBy: role.update_by,
+        updateTime: role.update_time,
+        remark: role.remark,
+        roleId: role.role_id,
+        roleName: role.role_name,
+        roleKey: role.role_key,
+        roleSort: role.role_sort,
+        dataScope: role.data_scope,
+        menuCheckStrictly: role.menu_check_strictly,
+        deptCheckStrictly: role.dept_check_strictly,
+        status: role.status,
+        delFlag: role.del_flag,
+        flag: false,
+        admin: role.role_key === 'admin',
+      });
+    }
+    const data = { code: 0, rows, total };
+    util.objectDateToString({ model: data });
+    return data;
+  }
+
+  /** test/public/services/menu.service.js — list */
+  async systemMenuList(req, reply) {
+    const params = this._params(req);
+    const menuRepo = factory.sys_menuRepo;
+    const search = await menuRepo.GetSearchSQL({ searchModel: params, userId: params.userId });
+    const menus = await menuRepo.GetList({
+      strWhere: search.sql,
+      strParams: search.params,
+    });
+    const data = menus.map((e) => menuModel.data(e));
+    return R({ Succeed: true, Message: '操作成功', toRuoyi: true, params: { data } });
+  }
+
+  /** test/public/services/dept.service.js — list */
+  async systemDeptList(req, reply) {
+    const params = this._params(req);
+    const deptRepo = factory.sys_deptRepo;
+    const menus = await deptRepo.GetList({ strWhere: '' });
+    const data = menus.map((e) => deptModel.data(e));
+    return R({ Succeed: true, Message: '操作成功', toRuoyi: true, params: { data } });
+  }
+
+  /** test/public/services/post.service.js — list */
+  async systemPostList(req, reply) {
+    const params = this._params(req);
+    const postRepo = factory.sys_postRepo;
+    const datas = await postRepo.GetList({ strWhere: '' });
+    const rows = datas.map((e) => postModel.data(e));
+    const out = { code: 0, rows, total: rows.length };
+    util.objectDateToString({ model: out });
+    return out;
   }
 
   /**
