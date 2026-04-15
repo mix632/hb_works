@@ -61,7 +61,7 @@ class BaseService {
   }
 
   _params(req) {
-    const p = { ...(req.query || {}), ...(req.body || {}) };
+    const p = { ...(req.query || {}), ...(req.body || {}), ...(req.params || {}) };
 
     const authRaw = req.headers?.authorization || req.headers?.Authorization;
     if (authRaw) {

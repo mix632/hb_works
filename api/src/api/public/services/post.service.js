@@ -33,7 +33,7 @@ class PostService extends BaseService {
     app.post(`${ry}/system/post`, (req, reply) => this.ruoyiSystemPut(req, reply));
     app.put(`${ry}/system/post`, (req, reply) => this.ruoyiSystemPut(req, reply));
     app.get(`${ry}/system/post/list`, (req, reply) => this.ruoyiSystemList(req, reply));
-    app.delete(`${ry}/system/post/:id`, (req, reply) => this.ruoyiSystemRestDelete(req, reply));
+    app.delete(`${ry}/system/post/:id`, (req, reply) => this.delete(req, reply));
     app.get(`${ry}/system/post/:id`, (req, reply) => this.ruoyiSystemRestGet(req, reply));
   }
 
@@ -50,17 +50,6 @@ class PostService extends BaseService {
   async ruoyiSystemPut(req, reply) {
     ensureRuoyiModelBody(req);
     return this.save(req, reply);
-  }
-
-  /** DELETE /ruoyi/system/post/:id */
-  async ruoyiSystemRestDelete(req, reply) {
-    const prev = req.query;
-    req.query = { ...(prev || {}), post_id: req.params.id };
-    try {
-      return await this.delete(req, reply);
-    } finally {
-      req.query = prev;
-    }
   }
 
   /** test/public post.service — get */
@@ -138,8 +127,8 @@ class PostService extends BaseService {
       if (params.ids && params.ids.length) {
         return this.myService.Delete({ ids: params.ids, userId: params.userId, db });
       }
-      if (params.post_id && !this.myService.IDIsEmpty(params.post_id)) {
-        return this.myService.Delete({ id: params.post_id, userId: params.userId, db });
+      if (params.id && !this.myService.IDIsEmpty(params.id)) {
+        return this.myService.Delete({ id: params.id, userId: params.userId, db });
       }
       return R({ Succeed: false, Message: '传入参数有误' });
     });

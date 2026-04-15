@@ -39,7 +39,7 @@ class MenuService extends BaseService {
     app.get(`${ry}/system/menu/copy/:menuId`, (req, reply) => this.ruoyiMenuCopy(req, reply));
     /** 必须在 /:id 之前，否则 treeselect 会被当成 id 导致「参数错误」 */
     app.get(`${ry}/system/menu/treeselect`, (req, reply) => this.ruoyiMenuTreeselect(req, reply));
-    app.delete(`${ry}/system/menu/:id`, (req, reply) => this.ruoyiSystemRestDelete(req, reply));
+    app.delete(`${ry}/system/menu/:id`, (req, reply) => this.delete(req, reply));
     app.get(`${ry}/system/menu/:id`, (req, reply) => this.ruoyiSystemRestGet(req, reply));
   }
 
@@ -87,17 +87,6 @@ class MenuService extends BaseService {
       Data: saved ? this.myModel.data(saved) : null,
       toRuoyi: true,
     });
-  }
-
-  /** DELETE /ruoyi/system/menu/:id */
-  async ruoyiSystemRestDelete(req, reply) {
-    const prev = req.query;
-    req.query = { ...(prev || {}), menu_id: req.params.id };
-    try {
-      return await this.delete(req, reply);
-    } finally {
-      req.query = prev;
-    }
   }
 
   /**
@@ -266,8 +255,8 @@ class MenuService extends BaseService {
       if (params.ids && params.ids.length) {
         return this.myService.Delete({ ids: params.ids, userId: params.userId, db });
       }
-      if (params.menu_id && !this.myService.IDIsEmpty(params.menu_id)) {
-        return this.myService.Delete({ id: params.menu_id, userId: params.userId, db });
+      if (params.id && !this.myService.IDIsEmpty(params.id)) {
+        return this.myService.Delete({ id: params.id, userId: params.userId, db });
       }
       return R({ Succeed: false, Message: '传入参数有误' });
     });

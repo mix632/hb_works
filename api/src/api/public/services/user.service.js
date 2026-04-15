@@ -43,7 +43,6 @@ class UserService extends BaseService {
     app.get(`${ry}/system/user/deptTree`, (req, reply) => this.systemDeptTree(req, reply));
     app.get(`${ry}/system/user/get`, (req, reply) => this.systemUserGet(req, reply));
     app.post(`${ry}/system/user/save`, (req, reply) => this.systemUserSave(req, reply));
-    app.post(`${ry}/system/user/delete`, (req, reply) => this.systemUserDelete(req, reply));
     app.get(`${ry}/system/user/profile`, (req, reply) => this.systemUserProfile(req, reply));
     app.put(`${ry}/system/user/profile`, (req, reply) => this.systemUserProfileSave(req, reply));
     app.put(`${ry}/system/user/profileSave`, (req, reply) => this.systemUserProfileSave(req, reply));
@@ -61,7 +60,7 @@ class UserService extends BaseService {
     app.put(`${ry}/system/user`, (req, reply) => this.systemUserPut(req, reply));
     app.put(`${ry}/system/user/resetPwd`, (req, reply) => this.systemUserResetPwd(req, reply));
     app.post(`${ry}/system/user/resetPwd`, (req, reply) => this.systemUserResetPwd(req, reply));
-    app.delete(`${ry}/system/user/:id`, (req, reply) => this.ruoyiSystemRestDelete(req, reply));
+    app.delete(`${ry}/system/user/:id`, (req, reply) => this.delete(req, reply));
     app.get(`${ry}/system/user/:id`, (req, reply) => this.systemUserRestGet(req, reply));
   }
 
@@ -69,17 +68,6 @@ class UserService extends BaseService {
   async systemUserPut(req, reply) {
     ensureRuoyiModelBody(req);
     return this.systemUserSave(req, reply);
-  }
-
-  /** DELETE /ruoyi/system/user/:id */
-  async ruoyiSystemRestDelete(req, reply) {
-    const prev = req.query;
-    req.query = { ...(prev || {}), id: req.params.id };
-    try {
-      return await this.systemUserDelete(req, reply);
-    } finally {
-      req.query = prev;
-    }
   }
 
   async updatePwd(req, reply) {
@@ -278,21 +266,6 @@ class UserService extends BaseService {
       Data: saved ? this.myModel.data(saved) : this.myModel.data(row),
       toRuoyi: true,
     });
-  }
-
-  /** test/public user.service — delete */
-  async systemUserDelete(req, reply) {
-    const params = this._params(req);
-    const result = await this.myService.Transaction(async (db) => {
-      if (params.ids && params.ids.length) {
-        return this.myService.Delete({ ids: params.ids, userId: params.userId, db });
-      }
-      if (params.id && !this.myService.IDIsEmpty(params.id)) {
-        return this.myService.Delete({ id: params.id, userId: params.userId, db });
-      }
-      return R({ Succeed: false, Message: '传入参数有误' });
-    });
-    return result;
   }
 
   /** test/public user.service — profile */
@@ -566,8 +539,8 @@ class UserService extends BaseService {
       if (params.ids && params.ids.length) {
         return this.myService.Delete({ ids: params.ids, userId: params.userId, db });
       }
-      if (params.user_id && !this.myService.IDIsEmpty(params.user_id)) {
-        return this.myService.Delete({ id: params.user_id, userId: params.userId, db });
+      if (params.id && !this.myService.IDIsEmpty(params.id)) {
+        return this.myService.Delete({ id: params.id, userId: params.userId, db });
       }
       return R({ Succeed: false, Message: '传入参数有误' });
     });

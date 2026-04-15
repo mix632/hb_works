@@ -33,7 +33,7 @@ class RoleService extends BaseService {
     app.post(`${ry}/system/role`, (req, reply) => this.ruoyiSystemPut(req, reply));
     app.put(`${ry}/system/role`, (req, reply) => this.ruoyiSystemPut(req, reply));
     app.get(`${ry}/system/role/list`, (req, reply) => this.ruoyiSystemList(req, reply));
-    app.delete(`${ry}/system/role/:id`, (req, reply) => this.ruoyiSystemRestDelete(req, reply));
+    app.delete(`${ry}/system/role/:id`, (req, reply) => this.delete(req, reply));
     app.get(`${ry}/system/role/:id`, (req, reply) => this.ruoyiSystemRestGet(req, reply));
   }
 
@@ -82,17 +82,6 @@ class RoleService extends BaseService {
   async ruoyiSystemPut(req, reply) {
     ensureRuoyiModelBody(req);
     return this.save(req, reply);
-  }
-
-  /** DELETE /ruoyi/system/role/:id */
-  async ruoyiSystemRestDelete(req, reply) {
-    const prev = req.query;
-    req.query = { ...(prev || {}), role_id: req.params.id };
-    try {
-      return await this.delete(req, reply);
-    } finally {
-      req.query = prev;
-    }
   }
 
   /** test/public role.service — get */
@@ -174,8 +163,8 @@ class RoleService extends BaseService {
       if (params.ids && params.ids.length) {
         return this.myService.Delete({ ids: params.ids, userId: params.userId, db });
       }
-      if (params.role_id && !this.myService.IDIsEmpty(params.role_id)) {
-        return this.myService.Delete({ id: params.role_id, userId: params.userId, db });
+      if (params.id && !this.myService.IDIsEmpty(params.id)) {
+        return this.myService.Delete({ id: params.id, userId: params.userId, db });
       }
       return R({ Succeed: false, Message: '传入参数有误' });
     });
