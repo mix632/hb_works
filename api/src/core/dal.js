@@ -73,6 +73,18 @@ class Dal {
         return this;
       },
       raw(sql, p = {}, lk = 'and') { push(sql, lk, p); return this; },
+      /**
+       * 并入一段已写好占位符的 WHERE 片段及其 replacements（与 raw(sql, params, lk) 等价）。
+       * @param {{ sql: string, params?: object }} fragment — SQL 中使用 :paramName，params 与之对应
+       * @param {string} [lk='and'] — 与上一段条件的连接符 and / or
+       */
+      sqlParams(sql, params, lk = 'and') {
+        if (!sql || typeof sql !== 'string' || !sql.trim()) {
+          throw new Error('safeWhere.sqlParams: 需要 { sql, params } 且 sql 为非空字符串');
+        }
+        push(sql, lk, params || {});
+        return this;
+      },
       build() {
         let sql = '';
         for (const c of clauses) {
