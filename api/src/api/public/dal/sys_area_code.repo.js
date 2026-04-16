@@ -1,8 +1,8 @@
 'use strict';
 
 const { Dal } = require('../../../core/dal');
-const util = require('../../../utils');
 const model = require('../model/sys_area_code.model');
+const factory = require('../factory');
 
 /**
  * sys_area_code — 核心表
@@ -36,7 +36,6 @@ class SysAreaCodeRepo extends Dal {
     if (!datas || !datas.length) return;
     if (!isLoadDetailed) return;
 
-    const factory = require('../factory');
     const ids = datas.map(e => this.GetModelID({ model: e }));
     if (ids.length) {
     }

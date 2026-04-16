@@ -2,6 +2,7 @@
 
 const { Dal } = require('../../../core/dal');
 const model = require('../model/sys_role.model');
+const factory = require('../factory');
 
 /**
  * sys_role — 核心表
@@ -12,7 +13,7 @@ class SysRoleRepo extends Dal {
     this.modelType = model;
     this.tableName = 'sys_role';
     this.defalutOrder = 'sys_role.role_id desc';
-    this.tableTitle = '角色信息';
+    this.tableTitle = '角色';
     this.primaryKey = 'role_id';
     this.deleteKey = 'del_flag';
     this.createDate = 'create_time';
@@ -35,7 +36,6 @@ class SysRoleRepo extends Dal {
     if (!datas || !datas.length) return;
     if (!isLoadDetailed) return;
 
-    const factory = require('../factory');
     const ids = datas.map(e => this.GetModelID({ model: e }));
     if (ids.length) {
     }

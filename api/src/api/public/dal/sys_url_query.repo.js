@@ -1,8 +1,8 @@
 'use strict';
 
 const { Dal } = require('../../../core/dal');
-const uuid = require('uuid');
 const model = require('../model/sys_url_query.model');
+const factory = require('../factory');
 
 /**
  * sys_url_query — 核心表
@@ -15,10 +15,10 @@ class SysUrlQueryRepo extends Dal {
     this.defalutOrder = 'sys_url_query.id desc';
     this.tableTitle = 'url参数';
     this.primaryKey = 'id';
-    this.deleteKey = '';
-    this.createDate = '';
+    this.deleteKey = 'deleted';
+    this.createDate = 'created_at';
     this.createUserId = '';
-    this.updateDate = '';
+    this.updateDate = 'updated_at';
     this.updateUserId = '';
     this.deleteDate = '';
     this.deleteUserId = '';
@@ -36,7 +36,6 @@ class SysUrlQueryRepo extends Dal {
     if (!datas || !datas.length) return;
     if (!isLoadDetailed) return;
 
-    const factory = require('../factory');
     const ids = datas.map(e => this.GetModelID({ model: e }));
     if (ids.length) {
     }

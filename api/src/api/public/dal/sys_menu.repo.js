@@ -2,6 +2,7 @@
 
 const { Dal } = require('../../../core/dal');
 const model = require('../model/sys_menu.model');
+const factory = require('../factory');
 
 /**
  * sys_menu — 核心表
@@ -35,7 +36,6 @@ class SysMenuRepo extends Dal {
     if (!datas || !datas.length) return;
     if (!isLoadDetailed) return;
 
-    const factory = require('../factory');
     const ids = datas.map(e => this.GetModelID({ model: e }));
     if (ids.length) {
     }

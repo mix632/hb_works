@@ -2,6 +2,7 @@
 
 const { Dal } = require('../../../core/dal');
 const model = require('../model/system_file_type.model');
+const factory = require('../factory');
 
 /**
  * system_file_type — 核心表
@@ -12,15 +13,15 @@ class SystemFileTypeRepo extends Dal {
     this.modelType = model;
     this.tableName = 'system_file_type';
     this.defalutOrder = 'system_file_type.id desc';
-    this.tableTitle = '系统附件表配置';
+    this.tableTitle = '附件类型';
     this.primaryKey = 'id';
     this.deleteKey = 'Deleted';
     this.createDate = 'CreateDate';
     this.createUserId = 'CreateUserId';
     this.updateDate = 'UpdateDate';
     this.updateUserId = 'UpdateUserId';
-    this.deleteDate = 'DeletedDate';
-    this.deleteUserId = 'DeletedUserId';
+    this.deleteDate = '';
+    this.deleteUserId = '';
     this.sortIndex = '';
     this.emptyPrimaryValue = 0;
     this.baseSql = `
@@ -35,7 +36,6 @@ class SystemFileTypeRepo extends Dal {
     if (!datas || !datas.length) return;
     if (!isLoadDetailed) return;
 
-    const factory = require('../factory');
     const ids = datas.map(e => this.GetModelID({ model: e }));
     if (ids.length) {
     }

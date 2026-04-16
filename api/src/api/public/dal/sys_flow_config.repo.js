@@ -2,6 +2,7 @@
 
 const { Dal } = require('../../../core/dal');
 const model = require('../model/sys_flow_config.model');
+const factory = require('../factory');
 
 /**
  * sys_flow_config — 核心表
@@ -35,7 +36,6 @@ class SysFlowConfigRepo extends Dal {
     if (!datas || !datas.length) return;
     if (!isLoadDetailed) return;
 
-    const factory = require('../factory');
     const ids = datas.map(e => this.GetModelID({ model: e }));
     if (ids.length) {
     }

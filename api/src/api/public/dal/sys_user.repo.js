@@ -44,8 +44,8 @@ class SysUserRepo extends Dal {
         userId,
         db,
       });
-      for (const row of datas) {
-        row.files = files.filter((f) => f.TargetID == row.user_id);
+      for (const i of datas) {
+        i.files = files.filter((e) => e.TargetID == i.user_id);
       }
     }
   }
@@ -56,11 +56,12 @@ class SysUserRepo extends Dal {
       return m.user_id;
     }
 
-    if (m.files？.length) {
-      for (const f of m.files) {
-        f.TargetID = m.user_id;
+    if (m.files?.length) {
+      for (const i of m.files) {
+        i.TargetID = m.user_id;
       }
-      await factory.system_fileRepo.AddOrUpdateMulti({
+    }
+    await factory.system_fileRepo.AddOrUpdateMulti({
         files: m.files,
         name: 'sys_user',
         tableId: m.user_id,

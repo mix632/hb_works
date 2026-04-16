@@ -8,6 +8,7 @@ const UUID = require('uuid');
 const util = require('../../../utils');
 const model = require('../model/system_file.model');
 const fileTypeEntity = require('../model/system_file_type.model');
+const factory = require('../factory');
 
 /**
  * system_file — 核心表
@@ -25,8 +26,8 @@ class SystemFileRepo extends Dal {
     this.createUserId = 'CreateUserId';
     this.updateDate = 'UpdateDate';
     this.updateUserId = 'UpdateUserId';
-    this.deleteDate = 'DeletedDate';
-    this.deleteUserId = 'DeletedUserId';
+    this.deleteDate = '';
+    this.deleteUserId = '';
     this.sortIndex = 'SortIndex';
     this.emptyPrimaryValue = 0;
     this.baseSql = `
@@ -41,7 +42,6 @@ class SystemFileRepo extends Dal {
     if (!datas || !datas.length) return;
     if (!isLoadDetailed) return;
 
-    const factory = require('../factory');
     const ids = datas.map(e => this.GetModelID({ model: e }));
     if (ids.length) {
     }
@@ -55,7 +55,10 @@ class SystemFileRepo extends Dal {
 
     return m.id;
   }
-
+  /**
+   * 如果在保存数据时，id=0时，可以通过实体的其他值，组成sql，查询唯一性数据库实体
+   * @param {object} model 数据实体
+   */
   AddOrUpdate_GetIDZeroSql({ model }) {
     return ``;
   }
