@@ -43,7 +43,11 @@ class SysMenuRepo extends Dal {
 
   async AddOrUpdate({ model: m, isSaveDetailed = false, userId, db = null }) {
     if (m.isOpenUrl) {
-      var item = await this.Get({ strWhere: `sys_menu.isOpenUrl = 1 and sys_menu.menu_id != '${m.menu_id}'`, db: db }); /* prettier-ignore */
+      var item = await this.Get({
+        strWhere: 'sys_menu.isOpenUrl = 1 and sys_menu.menu_id != :_mid',
+        strParams: { _mid: m.menu_id },
+        db: db,
+      }); /* prettier-ignore */
       if (item) {
         item.isOpenUrl = false;
         item.menu_id = await super.AddOrUpdate({ model: item, db: db });

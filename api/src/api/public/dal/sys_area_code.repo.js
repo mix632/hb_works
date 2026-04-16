@@ -3,6 +3,7 @@
 const { Dal } = require('../../../core/dal');
 const model = require('../model/sys_area_code.model');
 const factory = require('../factory');
+const util = require('../../../utils');
 
 /**
  * sys_area_code — 核心表
@@ -122,15 +123,20 @@ class SysAreaCodeRepo extends Dal {
    * 城市列表（按拼音首字母分组），供 uni-app 城市选择器使用
    */
   async CityListGrouped({ keyword = '', userId = 0, db = null }) {
-    const kw = (keyword || '').trim().replace(/'/g, "''");
+    const kw = (keyword || '').trim();
     let strWhere;
+    let strParams;
     if (kw.length) {
-      strWhere = `sys_area_code.level = 3 and (sys_area_code.name like '%${kw}%' or sys_area_code.pinyin like '%${kw}%')`;
+      strWhere = 'sys_area_code.level = 3 and (sys_area_code.name like :_kwA or sys_area_code.pinyin like :_kwB)';
+      const like = `%${kw}%`;
+      strParams = { _kwA: like, _kwB: like };
     } else {
-      strWhere = `sys_area_code.level = 1`;
+      strWhere = 'sys_area_code.level = 1';
+      strParams = {};
     }
     const rows = await this.GetList({
       strWhere,
+      strParams,
       strOrder: 'sys_area_code.pinyin asc, sys_area_code.name asc',
       userId,
       isLoadDetailed: false,
@@ -148,13 +154,18 @@ class SysAreaCodeRepo extends Dal {
     if (!parent) {
       return util.BaseRetrun({ Succeed: false, Message: '缺少父级区划代码 pcode' });
     }
-    const kw = (keyword || '').trim().replace(/'/g, "''");
-    let strWhere = `sys_area_code.pcode = '${parent}'`;
+    const kw = (keyword || '').trim();
+    let strWhere = 'sys_area_code.pcode = :_pcode';
+    const strParams = { _pcode: parent };
     if (kw.length) {
-      strWhere += ` and (sys_area_code.name like '%${kw}%' or sys_area_code.pinyin like '%${kw}%')`;
+      strWhere += ' and (sys_area_code.name like :_kwC or sys_area_code.pinyin like :_kwD)';
+      const like = `%${kw}%`;
+      strParams._kwC = like;
+      strParams._kwD = like;
     }
     const rows = await this.GetList({
       strWhere,
+      strParams,
       strOrder: 'sys_area_code.pinyin asc, sys_area_code.name asc',
       userId,
       isLoadDetailed: false,
@@ -173,7 +184,8 @@ class SysAreaCodeRepo extends Dal {
       return util.BaseRetrun({ Succeed: false, Message: '缺少 code' });
     }
     const curRows = await this.GetList({
-      strWhere: `sys_area_code.code = '${id}'`,
+      strWhere: 'sys_area_code.code = :_code',
+      strParams: { _code: id },
       userId, isLoadDetailed: false, isGetValue: true, db,
     });
     if (!curRows || !curRows.length) {
@@ -189,7 +201,8 @@ class SysAreaCodeRepo extends Dal {
       const pc = cur.pcode != null && cur.pcode !== '' ? String(cur.pcode).replace(/[^\d]/g, '') : '';
       if (!pc || pc === '0') break;
       const parents = await this.GetList({
-        strWhere: `sys_area_code.code = '${pc}'`,
+        strWhere: 'sys_area_code.code = :_pcode2',
+        strParams: { _pcode2: pc },
         userId, isLoadDetailed: false, isGetValue: true, db,
       });
       if (!parents || !parents.length) break;
