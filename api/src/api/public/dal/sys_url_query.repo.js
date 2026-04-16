@@ -1,5 +1,6 @@
 'use strict';
 
+const uuid = require('uuid');
 const { Dal } = require('../../../core/dal');
 const model = require('../model/sys_url_query.model');
 const factory = require('../factory');

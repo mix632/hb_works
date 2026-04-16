@@ -54,10 +54,16 @@ class SysRoleMenuRepo extends Dal {
    * @param {object} model 数据实体
    */
   AddOrUpdate_GetIDZeroSql({ model }) {
-    return `sys_role_menu.role_id = '${model.role_id}' and sys_role_menu.menu_id = '${model.menu_id}'`;
+    return {
+      sql: 'sys_role_menu.role_id = :_rid and sys_role_menu.menu_id = :_mid',
+      params: { _rid: model.role_id, _mid: model.menu_id },
+    };
   }
   AddOrUpdate_GetExistSql({ model }) {
-    return `sys_role_menu.role_id = '${model.role_id}' and sys_role_menu.menu_id = '${model.menu_id}'`;
+    return {
+      sql: 'sys_role_menu.role_id = :_rid and sys_role_menu.menu_id = :_mid',
+      params: { _rid: model.role_id, _mid: model.menu_id },
+    };
   }
 
   GetSearchSQL({ searchModel, userId }) {

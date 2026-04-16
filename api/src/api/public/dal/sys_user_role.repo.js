@@ -54,10 +54,16 @@ class SysUserRoleRepo extends Dal {
    * @param {object} model 数据实体
    */
   AddOrUpdate_GetIDZeroSql({ model }) {
-    return `sys_user_role.user_id = '${model.user_id}' and sys_user_role.role_id = '${model.role_id}'`;
+    return {
+      sql: 'sys_user_role.user_id = :_uid and sys_user_role.role_id = :_rid',
+      params: { _uid: model.user_id, _rid: model.role_id },
+    };
   }
   AddOrUpdate_GetExistSql({ model }) {
-    return `sys_user_role.user_id = '${model.user_id}' and sys_user_role.role_id = '${model.role_id}'`;
+    return {
+      sql: 'sys_user_role.user_id = :_uid and sys_user_role.role_id = :_rid',
+      params: { _uid: model.user_id, _rid: model.role_id },
+    };
   }
 
   GetSearchSQL({ searchModel, userId }) {

@@ -54,10 +54,16 @@ class SysRoleDeptRepo extends Dal {
    * @param {object} model 数据实体
    */
   AddOrUpdate_GetIDZeroSql({ model }) {
-    return `sys_role_dept.role_id = '${model.role_id}' and sys_role_dept.dept_id = '${model.dept_id}'`;
+    return {
+      sql: 'sys_role_dept.role_id = :_role_id and sys_role_dept.dept_id = :_dept_id',
+      params: { _role_id: model.role_id, _dept_id: model.dept_id },
+    };
   }
   AddOrUpdate_GetExistSql({ model }) {
-    return `sys_role_dept.role_id = '${model.role_id}' and sys_role_dept.dept_id = '${model.dept_id}'`;
+    return {
+      sql: 'sys_role_dept.role_id = :_rid and sys_role_dept.dept_id = :_did',
+      params: { _rid: model.role_id, _did: model.dept_id },
+    };
   }
 
   GetSearchSQL({ searchModel, userId }) {

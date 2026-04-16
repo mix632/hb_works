@@ -54,10 +54,16 @@ class SysUserPostRepo extends Dal {
    * @param {object} model 数据实体
    */
   AddOrUpdate_GetIDZeroSql({ model }) {
-    return `sys_user_post.user_id = '${model.user_id}' and sys_user_post.post_id = '${model.post_id}'`;
+    return {
+      sql: 'sys_user_post.user_id = :_uid and sys_user_post.post_id = :_pid',
+      params: { _uid: model.user_id, _pid: model.post_id },
+    };
   }
   AddOrUpdate_GetExistSql({ model }) {
-    return `sys_user_post.user_id = '${model.user_id}' and sys_user_post.post_id = '${model.post_id}'`;
+    return {
+      sql: 'sys_user_post.user_id = :_uid and sys_user_post.post_id = :_pid',
+      params: { _uid: model.user_id, _pid: model.post_id },
+    };
   }
 
   GetSearchSQL({ searchModel, userId }) {

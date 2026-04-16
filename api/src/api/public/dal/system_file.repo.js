@@ -85,15 +85,15 @@ class SystemFileRepo extends Dal {
     }
     if (searchModel.id) w.eq('system_file.id', searchModel.id);
     if (searchModel.ids) w.in('system_file.id', searchModel.ids);
+    if (searchModel.TableID != null && String(searchModel.TableID).trim() !== '') {
+      const raw = String(searchModel.TableID).trim();
+      const tids = raw.split(/[,，]/).map((s) => parseInt(s.trim(), 10)).filter((n) => !Number.isNaN(n));
+      if (tids.length) w.in('system_file.TableID', tids);
+    }
 
     const built = w.build();
     let sql = built.sql;
     const params = built.params || {};
-
-    if (searchModel.TableID != null && String(searchModel.TableID).trim() !== '') {
-      const t = `system_file.TableID in (${searchModel.TableID})`;
-      sql = sql ? `(${sql}) and (${t})` : t;
-    }
     if (!util.stringIsEmpty(searchModel.yesIsImage) || !util.stringIsEmpty(searchModel.notIsImage)) {
       const img = parseInt(searchModel.yesIsImage, 10) ? 1 : 0;
       const notImg = parseInt(searchModel.notIsImage, 10) ? 0 : 1;
@@ -112,8 +112,12 @@ class SystemFileRepo extends Dal {
     }
     const factory = require('../factory');
     const fileTypeService = factory.system_file_typeRepo;
-    const esc = (s) => String(s || '').replace(/'/g, "''");
-    let fileTypeModel = await fileTypeService.Get({ strWhere: `system_file_type.Name = '${esc(name)}'`, userId, db });
+    let fileTypeModel = await fileTypeService.Get({
+      strWhere: 'system_file_type.Name = :_ftName',
+      strParams: { _ftName: name },
+      userId,
+      db,
+    });
     if (!fileTypeModel) {
       fileTypeModel = fileTypeEntity.CopyData({});
       fileTypeModel.Title = name;
@@ -156,14 +160,18 @@ class SystemFileRepo extends Dal {
         } catch (_) { /* ignore */ }
       }
     }
-    let md5s = files.map((e) => e.FileMd5);
-    md5s = util.SqlStringJoin({ ids: md5s });
+    const excludeMd5 = files.map((e) => e.FileMd5).filter(Boolean);
     if (isDeleteOther) {
-      let strWhere = `system_file.TableID = ${fileTypeModel.id} and system_file.TargetID = '${esc(tableId)}'`;
-      if (md5s.length > 0) {
-        strWhere = util.AppendSQL({ oldSql: strWhere, appendSQL: `system_file.FileMd5 not in (${md5s})` });
+      let strWhere = 'system_file.TableID = :_tid and system_file.TargetID = :_tgt';
+      const strParams = { _tid: fileTypeModel.id, _tgt: String(tableId ?? '') };
+      if (excludeMd5.length > 0) {
+        strWhere = util.AppendSQL({
+          oldSql: strWhere,
+          appendSQL: 'system_file.FileMd5 not in (:_excludeMd5)',
+        });
+        strParams._excludeMd5 = excludeMd5;
       }
-      await this.Delete({ strWhere, userId, db });
+      await this.Delete({ strWhere, strParams, userId, db });
     }
     return this.AddOrUpdateList({ models: files, userId, db });
   }
@@ -173,10 +181,10 @@ class SystemFileRepo extends Dal {
    */
   async GetFilesForName({ fileType, TargetIDs, userId, filePath, db }) {
     const base = filePath ? path.join(process.cwd(), filePath) : this.myConfig.upload.fullPath;
-    const esc = (s) => String(s || '').replace(/'/g, "''");
     const ids = Array.isArray(TargetIDs) ? TargetIDs : String(TargetIDs || '').split(',').filter(Boolean);
-    const strWhere = `system_file.TableID = (select id from system_file_type where Name = '${esc(fileType)}' and Deleted = 0) and system_file.TargetID in (${util.SqlStringJoin({ ids })})`;
-    const datas = await this.GetList({ strWhere, isLoadDetailed: true, userId, db });
+    const strWhere = 'system_file.TableID = (select id from system_file_type where Name = :_ftName and Deleted = 0) and system_file.TargetID in (:_tids)';
+    const strParams = { _ftName: fileType, _tids: ids };
+    const datas = await this.GetList({ strWhere, strParams, isLoadDetailed: true, userId, db });
     for (const i of datas) {
       const fp = i.SavePath ? path.join(base, i.SavePath, i.FileMd5) : path.join(base, i.FileMd5);
       i.FileIsExist = await fs.pathExists(fp);
