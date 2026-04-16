@@ -15,7 +15,7 @@ const { nowStr } = require('../../../utils/dateUtil');
 const factory = require('../factory');
 const userRepo = require('../dal/sys_user.repo');
 const userModel = require('../model/sys_user.model');
-const { sqlEsc, md5Hex } = require('./ruoyiUtil');
+const { md5Hex } = require('./ruoyiUtil');
 
 function createToken(payload) {
   return jwt.sign(
@@ -84,15 +84,16 @@ class RuoyiService extends BaseService {
     if (params.username) {
       const pwd = md5Hex(params.password);
       user = await userRepo.Get({
-        strWhere: `sys_user.user_name = '${sqlEsc(params.username)}' and sys_user.password = '${sqlEsc(pwd)}'`,
+        strWhere: 'sys_user.user_name = :_un and sys_user.password = :_pwd',
+        strParams: { _un: params.username, _pwd: pwd },
       });
       if (!user) {
         return R({ Succeed: false, Message: '用户名或密码不对，请检查', toRuoyi: true });
       }
     } else if (params.miniProgram) {
-      const oid = sqlEsc(params.miniProgram.openId);
       user = await userRepo.Get({
-        strWhere: `JSON_UNQUOTE(JSON_EXTRACT(login_data, '$.miniOpenId')) = '${oid}'`,
+        strWhere: "JSON_UNQUOTE(JSON_EXTRACT(login_data, '$.miniOpenId')) = :_oid",
+        strParams: { _oid: params.miniProgram.openId },
         isLoadDetailed: true,
       });
       if (!user) {
@@ -176,9 +177,12 @@ class RuoyiService extends BaseService {
     const params = this._params(req);
     const menuRepo = factory.sys_menuRepo;
     const uid = parseInt(params.userId, 10) || 0;
-    const sql =
-      `sys_menu.menu_id in (select menu_id from sys_role_menu where role_id in (select role_id from sys_user_role where user_id = ${uid})) or sys_menu.menu_type = 'F'`;
-    const menus = await menuRepo.GetList({ strWhere: sql });
+    const strWhere =
+      "sys_menu.menu_id in (select menu_id from sys_role_menu where role_id in (select role_id from sys_user_role where user_id = :_uid)) or sys_menu.menu_type = :_mt";
+    const menus = await menuRepo.GetList({
+      strWhere,
+      strParams: { _uid: uid, _mt: 'F' },
+    });
 
     const roots = menus.filter((e) => !e.parent_id).map((e) => {
       const data = {

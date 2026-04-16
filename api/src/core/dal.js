@@ -316,8 +316,17 @@ class Dal {
 
         if (isEmpty) {
           const zeroSql = this.AddOrUpdate_GetIDZeroSql({ model });
-          if (zeroSql) {
-            existRow = await this.Get({ strWhere: zeroSql, isGetValue: false, db });
+          let zw;
+          let zp;
+          if (typeof zeroSql === 'object' && zeroSql.sql) {
+            zw = zeroSql.sql;
+            zp = zeroSql.params;
+          } else {
+            zw = zeroSql;
+            zp = undefined;
+          }
+          if (zw) {
+            existRow = await this.Get({ strWhere: zw, strParams: zp, isGetValue: false, db });
           }
           // else: 新增 + autoIncrement → 无需 SELECT，直接 INSERT
         } else {

@@ -126,7 +126,8 @@ class RoleService extends BaseService {
 
       const roleMenuRepo = this.factory.sys_role_menuRepo;
       const roleMenus = await roleMenuRepo.GetList({
-        strWhere: `sys_role_menu.role_id = ${m.role_id}`,
+        strWhere: 'sys_role_menu.role_id = :_rid',
+        strParams: { _rid: m.role_id },
         db,
         userId: params.userId,
       });
@@ -143,7 +144,8 @@ class RoleService extends BaseService {
       const deleteIds = roleMenus.map((e) => e.menu_id).filter((e) => !params.menuIds.includes(e));
       if (deleteIds.length) {
         const succeed = await roleMenuRepo.Delete({
-          strWhere: `sys_role_menu.role_id = ${m.role_id} and sys_role_menu.menu_id in (${util.SqlStringJoin({ ids: deleteIds })})`,
+          strWhere: 'sys_role_menu.role_id = :_rid and sys_role_menu.menu_id in (:_mids)',
+          strParams: { _rid: m.role_id, _mids: deleteIds },
           forceExecute: true,
           userId: params.userId,
           db,

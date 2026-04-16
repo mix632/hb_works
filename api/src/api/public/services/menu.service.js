@@ -9,7 +9,6 @@ const dto = require('../dto/sys_menu.dto');
 const util = require('../../../utils');
 const config = require('../../../core/serverConfig');
 const serviceRegistry = require('../../../core/serviceRegistry');
-const { sqlEsc } = require('./ruoyiUtil');
 
 class MenuService extends BaseService {
   constructor() {
@@ -108,8 +107,10 @@ class MenuService extends BaseService {
 
     let checkedKeys = [];
     if (roleId != null && roleId !== '') {
+      const rid = parseInt(roleId, 10);
       const rm = await roleMenuRepo.GetList({
-        strWhere: `sys_role_menu.role_id = '${sqlEsc(roleId)}'`,
+        strWhere: 'sys_role_menu.role_id = :_rid',
+        strParams: { _rid: rid },
         userId: params.userId,
       });
       checkedKeys = rm.map((e) => e.menu_id);

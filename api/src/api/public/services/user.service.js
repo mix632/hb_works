@@ -14,7 +14,7 @@ const postModel = require('../model/sys_post.model');
 const roleModel = require('../model/sys_role.model');
 const userRoleModel = require('../model/sys_user_role.model');
 const userPostModel = require('../model/sys_user_post.model');
-const { sqlEsc, md5Hex } = require('./ruoyiUtil');
+const { md5Hex } = require('./ruoyiUtil');
 
 class UserService extends BaseService {
   constructor() {
@@ -137,13 +137,15 @@ class UserService extends BaseService {
       data = await this.myService.Get({ id: params.id, isLoadDetailed: true, userId: params.userId });
     } else if (params.username) {
       data = await this.myService.Get({
-        strWhere: `sys_user.user_name = '${sqlEsc(params.username)}'`,
+        strWhere: 'sys_user.user_name = :_un',
+        strParams: { _un: params.username },
         isLoadDetailed: true,
         userId: params.userId,
       });
     } else if (params.miniProgram) {
       data = await this.myService.Get({
-        strWhere: `JSON_UNQUOTE(JSON_EXTRACT(login_data, '$.miniOpenId')) = '${sqlEsc(params.miniProgram.openId)}'`,
+        strWhere: "JSON_UNQUOTE(JSON_EXTRACT(login_data, '$.miniOpenId')) = :_oid",
+        strParams: { _oid: params.miniProgram.openId },
         isLoadDetailed: true,
         userId: params.userId,
       });
@@ -162,8 +164,14 @@ class UserService extends BaseService {
     let roles = await roleRepo.GetList({ strWhere: '' });
     roles = roles.map((e) => roleModel.data(e));
     const uid = data.userId;
-    const user_role = await userRoleRepo.GetList({ strWhere: `sys_user_role.user_id = '${uid}'` });
-    const user_post = await userPostRepo.GetList({ strWhere: `sys_user_post.user_id = '${uid}'` });
+    const user_role = await userRoleRepo.GetList({
+      strWhere: 'sys_user_role.user_id = :_uid',
+      strParams: { _uid: uid },
+    });
+    const user_post = await userPostRepo.GetList({
+      strWhere: 'sys_user_post.user_id = :_uid',
+      strParams: { _uid: uid },
+    });
     const extra = {
       posts,
       roles,
@@ -179,7 +187,10 @@ class UserService extends BaseService {
     const m = params.model;
     if (!m) return R({ Succeed: false, Message: '传入参数有误', toRuoyi: true });
 
-    const exist = await this.myService.Get({ strWhere: `sys_user.user_name = '${sqlEsc(m.userName)}'` });
+    const exist = await this.myService.Get({
+      strWhere: 'sys_user.user_name = :_un',
+      strParams: { _un: m.userName },
+    });
     if (exist && exist.user_id != m.userId) {
       return R({ Succeed: false, Message: `${m.userName} 已经存在，请换一个用户名`, toRuoyi: true });
     }
@@ -225,7 +236,8 @@ class UserService extends BaseService {
         return R({ Succeed: false, Message: '用户数据保存失败', toRuoyi: true });
       }
       await userRoleRepo.Delete({
-        strWhere: `sys_user_role.user_id = ${row.user_id}`,
+        strWhere: 'sys_user_role.user_id = :_uid',
+        strParams: { _uid: row.user_id },
         forceExecute: true,
         db,
       });
@@ -238,7 +250,8 @@ class UserService extends BaseService {
         });
       }
       await userPostRepo.Delete({
-        strWhere: `sys_user_post.user_id = ${row.user_id}`,
+        strWhere: 'sys_user_post.user_id = :_uid',
+        strParams: { _uid: row.user_id },
         forceExecute: true,
         db,
       });
@@ -279,10 +292,12 @@ class UserService extends BaseService {
       user.dept = deptModel.data(dept);
     }
     const posts = await postRepo.GetList({
-      strWhere: `sys_post.post_id = (select post_id from sys_user_post where user_id = '${params.userId}')`,
+      strWhere: 'sys_post.post_id = (select post_id from sys_user_post where user_id = :_uid)',
+      strParams: { _uid: params.userId },
     });
     const roles = await roleRepo.GetList({
-      strWhere: `sys_role.role_id = (select role_id from sys_user_role where user_id = '${params.userId}')`,
+      strWhere: 'sys_role.role_id = (select role_id from sys_user_role where user_id = :_uid)',
+      strParams: { _uid: params.userId },
     });
     const extra = {
       postGroup: posts.map((e) => e.post_name).join(','),
@@ -386,37 +401,35 @@ class UserService extends BaseService {
     const params = this._params(req);
     const deptRepo = this.factory.sys_deptRepo;
 
-    let sql = '';
-    if (params.userName) {
-      sql = util.AppendSQL({ oldSql: sql, appendSQL: `sys_user.user_name like '%${sqlEsc(params.userName)}%'` });
+    const w = this.myService.safeWhere();
+    if (params.userName && String(params.userName).trim()) {
+      w.like('sys_user.user_name', params.userName);
     }
-    if (params.phonenumber) {
-      sql = util.AppendSQL({ oldSql: sql, appendSQL: `sys_user.phonenumber like '%${sqlEsc(params.phonenumber)}%'` });
+    if (params.phonenumber && String(params.phonenumber).trim()) {
+      w.like('sys_user.phonenumber', params.phonenumber);
     }
-    if (params.status) {
-      sql = util.AppendSQL({ oldSql: sql, appendSQL: `sys_user.status = '${sqlEsc(params.status)}'` });
+    if (params.status != null && String(params.status).trim() !== '') {
+      w.eq('sys_user.status', params.status);
     }
     if (params.deptId) {
-      const did = sqlEsc(params.deptId);
-      const innerSql = `WITH RECURSIVE department_tree AS (
-        SELECT dept_id FROM sys_dept WHERE dept_id = '${did}'
-        UNION ALL
-        SELECT d.dept_id FROM sys_dept d JOIN department_tree dt ON d.parent_id = dt.dept_id
-      )
-      SELECT dept_id FROM department_tree WHERE dept_id != '${did}'`;
-      sql = util.AppendSQL({
-        oldSql: sql,
-        appendSQL: `sys_user.dept_id = '${did}' or sys_user.dept_id in (${innerSql})`,
-      });
+      w.raw(
+        `(sys_user.dept_id = :_deptId or sys_user.dept_id in (WITH RECURSIVE department_tree AS (
+          SELECT dept_id FROM sys_dept WHERE dept_id = :_deptId
+          UNION ALL
+          SELECT d.dept_id FROM sys_dept d JOIN department_tree dt ON d.parent_id = dt.dept_id
+        )
+        SELECT dept_id FROM department_tree WHERE dept_id != :_deptId))`,
+        { _deptId: params.deptId },
+      );
     }
     const beginTime = params['params[beginTime]'] || (params.params && params.params.beginTime);
     const endTime = params['params[endTime]'] || (params.params && params.params.endTime);
-    if (beginTime) {
-      sql = util.AppendSQL({ oldSql: sql, appendSQL: `sys_user.create_time >= '${sqlEsc(beginTime)}'` });
-    }
-    if (endTime) {
-      sql = util.AppendSQL({ oldSql: sql, appendSQL: `sys_user.create_time <= '${sqlEsc(endTime)} 23:59:59'` });
-    }
+    if (beginTime) w.gte('sys_user.create_time', beginTime);
+    if (endTime) w.lte('sys_user.create_time', `${endTime} 23:59:59`);
+
+    const built = w.build();
+    const sql = built.sql;
+    const strParams = built.params;
 
     const deptList = await deptRepo.GetList({ strWhere: '' });
     const deptMap = {};
@@ -435,12 +448,13 @@ class UserService extends BaseService {
     const [userList, total] = await Promise.all([
       this.myService.GetListForPageIndex({
         strWhere: sql,
+        strParams,
         pageIndex: pageNum - 1,
         onePageCount: pageSize,
         strOrder,
         userId: params.userId,
       }),
-      this.myService.Count({ strWhere: sql, userId: params.userId }),
+      this.myService.Count({ strWhere: sql, strParams, userId: params.userId }),
     ]);
 
     const rows = [];
