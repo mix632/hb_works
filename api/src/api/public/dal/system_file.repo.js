@@ -91,16 +91,16 @@ class SystemFileRepo extends Dal {
       if (tids.length) w.in('system_file.TableID', tids);
     }
 
-    const built = w.build();
-    let sql = built.sql;
-    const params = built.params || {};
     if (!util.stringIsEmpty(searchModel.yesIsImage) || !util.stringIsEmpty(searchModel.notIsImage)) {
       const img = parseInt(searchModel.yesIsImage, 10) ? 1 : 0;
       const notImg = parseInt(searchModel.notIsImage, 10) ? 0 : 1;
-      const t = `(system_file.IsImage = ${img} or system_file.IsImage = ${notImg})`;
-      sql = sql ? `(${sql}) and (${t})` : t;
+      w.sqlParams({
+        sql: '(system_file.IsImage = :_img or system_file.IsImage = :_notImg)',
+        params: { _img: img, _notImg: notImg },
+      });
     }
-    return { sql, params };
+
+    return w.build();
   }
 
   /**
