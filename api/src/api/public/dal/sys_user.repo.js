@@ -62,13 +62,12 @@ class SysUserRepo extends Dal {
       }
     }
     await factory.system_fileRepo.AddOrUpdateMulti({
-        files: m.files,
-        name: 'sys_user',
-        tableId: m.user_id,
-        userId,
-        db,
-      });
-    }
+      files: m.files,
+      name: 'sys_user',
+      tableId: m.user_id,
+      userId,
+      db,
+    });
     return m.user_id;
   }
   /**
