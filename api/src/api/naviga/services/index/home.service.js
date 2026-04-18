@@ -8,7 +8,7 @@
  * ─── 接口一览 ───
  *
  * 2) GET /naviga/home/page-config — 页面头区配置（数据写在 pageConfig 方法内，便于改库前直接改代码）
- *    返回 Data：{ menus: MenuItem[], allNavPopover: PopoverItem[] }
+ *    返回 Data：{ menus: MenuItem[], allNavPopover: PopoverItem[], searchEngines: SearchEngineItem[] }
  *
  *    MenuItem（menus 为有序数组）：
  *    - style: 'dropdown' — 有子菜单；children 每项含 label, icon, bg, url（点击跳转）
@@ -16,6 +16,13 @@
  *    公共：id, label, showBadge?, tapKey?, url?, children[]
  *
  *    allNavPopover：侧栏「全部网址导航」3×3，每项 { label, bg, icon, url }
+ *
+ *    searchEngines：Hero 搜索区 Tab，每项：
+ *    - id, name（Tab 文案）
+ *    - placeholders: string[]（输入框占位提示，前端取首项或自行轮换）
+ *    - url：跳转基址（不含查询串，可含已有 query，如 ?ie=utf-8）
+ *    - queryKey：查询参数名（如 wd、q）；与 url 拼成 ?queryKey=encodeURIComponent(关键词)
+ *    - buttonText?：搜索按钮文案；缺省时由前端按 name 推断
  *
  *
  * 实现数据暂写在本文件；后续接库时替换为查询结果。
@@ -134,6 +141,47 @@ class NavigaHomeService extends BaseService {
         },
       ];
 
+      /** Hero 搜索：多引擎 Tab + 占位提示 + 跳转 url + 查询参数名 */
+      const searchEngines = [
+        {
+          id: 'common',
+          name: '常用',
+          placeholders: ['优设网 国内专业创作者平台', '输入站点或关键词'],
+          url: '',
+          queryKey: '',
+        },
+        {
+          id: 'baidu',
+          name: '百度',
+          placeholders: ['百度一下，你就知道', '输入关键词搜索'],
+          url: 'https://www.baidu.com/s',
+          queryKey: 'wd',
+          buttonText: '百度一下',
+        },
+        {
+          id: 'google',
+          name: 'Google',
+          placeholders: ['Search the web', '输入英文或中文关键词'],
+          url: 'https://www.google.com/search',
+          queryKey: 'q',
+          buttonText: 'Google',
+        },
+        {
+          id: 'uisdc',
+          name: '优设网',
+          placeholders: ['搜教程、文章、资源', '优设网站内搜索'],
+          url: 'https://www.uisdc.com/search',
+          queryKey: 'q',
+        },
+        {
+          id: 'ai-island',
+          name: 'AI星踪岛',
+          placeholders: ['AI 工具与资讯', '发现最新 AI 应用'],
+          url: 'https://www.uisdc.com/aigc/',
+          queryKey: 'q',
+        },
+      ];
+
       /** 侧栏「全部网址导航」3×3，每项可跳转 */
       const allNavPopover = [
         { label: '优设导航', bg: '#22c55e', icon: '导', url: 'https://hao.uisdc.com/' },
@@ -147,7 +195,7 @@ class NavigaHomeService extends BaseService {
         { label: '更多导航', bg: '#64748b', icon: '···', url: 'https://hao.uisdc.com/' },
       ];
 
-      const data = { menus, allNavPopover };
+      const data = { menus, allNavPopover, searchEngines };
       return R({ Succeed: true, Message: '', Data: data });
     } catch (err) {
       return R({ Succeed: false, Message: err.message || '加载页面配置失败', Data: null });
