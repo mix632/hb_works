@@ -13,7 +13,11 @@
  * 3) GET /naviga/home/home-categories — 首页左侧菜单 + 中间各分类区块（数据量大，与 page-config 分接口）
  *    返回 Data：{ categories }
  *    - categories[]：id, name, icon, displayType（1=默认圆标卡片，2=大图 cover）, list[]
+ *    - 每项另含：newsLine（顶栏/右侧要闻文案）, aiFeedItems（右侧精选列表）, hubArticles（分类 Hub 左侧图文列）
  *    - list[]：id, name, image, desc, color?（color 为圆标底色；缺省时由服务端按 RESOURCE_CARD_PALETTE 补缺，便于日后改配置表）
+ *
+ * 4) GET /naviga/home/hub-article?articleId= — Hub 文章详情（id 形如 {categoryId}-hub-article-{n}）
+ *    返回 Data：{ article, body }
  *
  *    MenuItem（menus 为有序数组）：
  *    - style: 'dropdown' — 有子菜单；children 每项含 label, icon, bg, url（点击跳转）
@@ -523,6 +527,155 @@ function enrichHomeCategoriesListColors(categories) {
   }));
 }
 
+const HUB_ARTICLE_PALETTE = [
+  '#1677ff',
+  '#ff6a00',
+  '#7c3aed',
+  '#059669',
+  '#0ea5e9',
+  '#e11d48',
+  '#f59e0b',
+  '#2563eb',
+  '#db2777',
+  '#65a30d',
+];
+
+const hubArticleTimePool = [
+  '47分钟前',
+  '2小时前',
+  '昨天 18:02',
+  '昨天 12:15',
+  '04-16',
+  '04-15',
+];
+
+const hubArticleAuthors = ['竹笋集', '徐红兰', '优设编辑部', '灵感库', '工具控'];
+
+const aiFeedTimePool = [
+  '今天 10:12',
+  '今天 09:40',
+  '昨天 18:05',
+  '昨天 15:22',
+  '昨天 11:00',
+  '前天 16:48',
+  '前天 09:15',
+  '04-15',
+  '04-14',
+  '04-12',
+  '04-10',
+  '04-08',
+  '04-05',
+];
+
+function buildNewsLineForCategory(categoryId, label) {
+  const cid = String(categoryId || '');
+  const lines = {
+    hot: `热门速递：优设导航本周收录更新，${label}相关站点与工具持续扩充中。`,
+    gallery: `图库要闻：${label}方向新增 4K 素材与版权说明更新，设计师可放心商用筛选。`,
+    tutorial: `教程前线：${label}本周好课与免费章节已整理，含 Figma、Blender、AIGC 等方向。`,
+    ui: `界面情报：${label}灵感站与组件库更新，移动端与 B 端案例一并收录。`,
+    aigc: `AIGC 动态：大模型与绘图工具迭代频繁，${label}相关发布与限免活动速递。`,
+    font: `字体快讯：${label}开源与商用授权说明更新，新字族与可变字体已入库。`,
+    icon: `图标速递：${label}线性/面性套装更新，支持 SVG 与 Figma 一键引用。`,
+    photo: `摄影资讯：${label}图库版权与签约摄影师专题上新，纪实与人像精选合集。`,
+    illustration: `插画情报：${label}手绘与矢量素材专题，运营与海报场景一站补齐。`,
+    mockup: `样机消息：${label}设备与包装模板更新，含透明与 4K 场景文件。`,
+    ppt: `演示文稿：${label}模板与图表组件上新，汇报与融资路演场景可直接套用。`,
+    video: `视频素材：${label}片头、空镜与字幕模板更新，可商用授权筛选已优化。`,
+    webtpl: `网页模板：${label}响应式与落地页主题上新，含 Framer / Webflow 源文件。`,
+    mobileui: `移动 UI：${label} App 截图与组件参考更新，含 iOS / Android 双端。`,
+    brandcase: `品牌案例：${label}视觉与 VI 解析上新，国内外标杆项目持续收录。`,
+    model3d: `3D 模型：${label}资产与可打印模型更新，含低多边形与 PBR 材质包。`,
+    audio: `音频音效：${label}可商用音效与配乐专题，游戏与短视频场景分类补齐。`,
+    toolkit: `在线工具：${label}效率小工具与浏览器插件上新，设计交付链路再缩短。`,
+    inspiration: `灵感速递：${label}情绪板与配色案例更新，一键收藏至花瓣 / Savee。`,
+    motion: `动效设计：${label} MG 与 UI 动效案例上新，含 Lottie 与 AE 工程。`,
+    handbook: `设计手册：${label}规范与组件文档更新，团队可同步至语雀 / Notion。`,
+    collab: `协作工具：${label}白板与文档更新，远程评审与版本对比能力增强。`,
+  };
+  return lines[cid] || `【${label}】要闻：本站持续收录与「${label}」相关的工具、站点与行业短讯。`;
+}
+
+function buildAiFeedForCategory(categoryId, label) {
+  const cid = String(categoryId || '');
+  const prefix =
+    cid === 'aigc' ? 'AI 前沿' : cid === 'hot' ? '热门速递' : label;
+  const n = 10;
+  return Array.from({ length: n }, (_, i) => ({
+    id: `${cid}-feed-${i + 1}`,
+    title: `【${prefix}】精选 ${i + 1}：与「${label}」相关的工具更新、案例与行业短讯。`,
+    time: aiFeedTimePool[i % aiFeedTimePool.length],
+  }));
+}
+
+function buildHubArticlesForCategory(categoryId, label) {
+  const cid = String(categoryId || '');
+  const n = 6;
+  return Array.from({ length: n }, (_, i) => ({
+    id: `${cid}-hub-article-${i + 1}`,
+    cover: `https://picsum.photos/seed/hubart-${cid}-${i}/400/300`,
+    author: hubArticleAuthors[i % hubArticleAuthors.length],
+    time: hubArticleTimePool[i % hubArticleTimePool.length],
+    title:
+      i === 0
+        ? 'AI 还原页面设计怎么做？我实测后总结了这套「块状精修法」！'
+        : `【${label}】设计实战 ${i + 1}：从需求到落地的清单与案例`,
+    desc: `围绕「${label}」方向的图文导读与工具心得摘要，占位示例，接口化后可替换为真实摘要。`,
+    tags:
+      i % 3 === 0
+        ? ['AIGC', 'AI绘画', 'Cursor', 'UI设计']
+        : i % 3 === 1
+          ? ['Figma', '组件库', 'B端']
+          : ['排版', '品牌', '视觉'],
+    titleAccent: i === 0,
+    avatarColor: HUB_ARTICLE_PALETTE[i % HUB_ARTICLE_PALETTE.length],
+  }));
+}
+
+function buildHubArticleBody(article, label) {
+  if (!article) return '';
+  return [
+    `本文为「${label}」频道下的示例资讯，标题：${article.title}`,
+    '',
+    '在实际业务中，此处为正文：可接入 CMS 富文本、Markdown 渲染或 web-view 加载 H5。以下为占位段落，用于预览版式与行距。',
+    '',
+    '设计工作流里，建议将「需求拆解 → 组件选型 → 视觉还原 → 走查验收」拆成可复用清单；与 AI 协作时，可把页面按块状精修，逐块对齐标注与交互说明。',
+    '',
+    '若需评论、点赞、相关推荐等模块，可在本页下方继续堆叠组件。',
+  ].join('\n');
+}
+
+function parseHubArticleId(articleId) {
+  const raw = String(articleId || '');
+  const marker = '-hub-article-';
+  const j = raw.indexOf(marker);
+  if (j <= 0) return null;
+  const categoryId = raw.slice(0, j);
+  const n = parseInt(raw.slice(j + marker.length), 10);
+  if (!Number.isFinite(n) || n < 1) return null;
+  return { categoryId, n };
+}
+
+function findCategoryNameInList(categories, categoryId) {
+  if (!Array.isArray(categories)) return '推荐';
+  const c = categories.find((x) => x && x.id === categoryId);
+  return c && c.name ? String(c.name) : '推荐';
+}
+
+function enrichHomeCategoriesWithHubFeeds(categories) {
+  if (!Array.isArray(categories)) return [];
+  return categories.map((cat) => {
+    const label = cat.name ? String(cat.name) : '推荐';
+    const cid = cat.id != null ? String(cat.id) : 'hot';
+    return {
+      ...cat,
+      newsLine: buildNewsLineForCategory(cid, label),
+      aiFeedItems: buildAiFeedForCategory(cid, label),
+      hubArticles: buildHubArticlesForCategory(cid, label),
+    };
+  });
+}
+
 class NavigaHomeService extends BaseService {
   constructor() {
     super({
@@ -538,18 +691,47 @@ class NavigaHomeService extends BaseService {
     app.get(`${p}/bootstrap`, (req, reply) => this.bootstrap(req, reply));
     app.get(`${p}/page-config`, (req, reply) => this.pageConfig(req, reply));
     app.get(`${p}/home-categories`, (req, reply) => this.homeCategories(req, reply));
+    app.get(`${p}/hub-article`, (req, reply) => this.hubArticle(req, reply));
     app.get(`${p}/test`, (req, reply) => this.test(req, reply));
   }
 
   async homeCategories(req, reply) {
     void reply;
     try {
-      const categories = enrichHomeCategoriesListColors(buildHomeCategoriesPayload());
+      const colored = enrichHomeCategoriesListColors(buildHomeCategoriesPayload());
+      const categories = enrichHomeCategoriesWithHubFeeds(colored);
       return R({ Succeed: true, Message: '', Data: { categories } });
     } catch (err) {
       return R({
         Succeed: false,
         Message: err.message || '加载首页分类区块失败',
+        Data: null,
+      });
+    }
+  }
+
+  async hubArticle(req, reply) {
+    void reply;
+    try {
+      const articleId = req.query && req.query.articleId;
+      const parsed = parseHubArticleId(articleId);
+      if (!parsed) {
+        return R({ Succeed: false, Message: '无效的文章 id', Data: null });
+      }
+      const { categoryId, n } = parsed;
+      const baseCats = enrichHomeCategoriesListColors(buildHomeCategoriesPayload());
+      const label = findCategoryNameInList(baseCats, categoryId);
+      const list = buildHubArticlesForCategory(categoryId, label);
+      const article = list[n - 1] || null;
+      if (!article) {
+        return R({ Succeed: false, Message: '未找到文章', Data: null });
+      }
+      const body = buildHubArticleBody(article, label);
+      return R({ Succeed: true, Message: '', Data: { article, body } });
+    } catch (err) {
+      return R({
+        Succeed: false,
+        Message: err.message || '加载文章失败',
         Data: null,
       });
     }
