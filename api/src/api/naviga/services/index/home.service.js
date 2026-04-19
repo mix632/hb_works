@@ -8,11 +8,12 @@
  * ─── 接口一览 ───
  *
  * 2) GET /naviga/home/page-config — 页面头区配置（数据写在 pageConfig 方法内，便于改库前直接改代码）
- *    返回 Data：{ menus, allNavPopover, searchEngines, hotSearchTags, homeCategories }
+ *    返回 Data：{ menus, allNavPopover, searchEngines, hotSearchTags }
  *
- *    homeCategories：首页左侧菜单 + 中间各分类区块数据（与 buildHomeCategoriesPayload 一致）
- *    - 每项：id, name, icon, displayType（1=默认圆标卡片，2=大图 cover）, list[]
- *    - list[] 每项：id, name（名称）, image（http(s) 图为封面；displayType=1 时可为空字符串）, desc（描述）
+ * 3) GET /naviga/home/home-categories — 首页左侧菜单 + 中间各分类区块（数据量大，与 page-config 分接口）
+ *    返回 Data：{ categories }
+ *    - categories[]：id, name, icon, displayType（1=默认圆标卡片，2=大图 cover）, list[]
+ *    - list[]：id, name, image, desc, color?（color 为圆标底色；缺省时由服务端按 RESOURCE_CARD_PALETTE 补缺，便于日后改配置表）
  *
  *    MenuItem（menus 为有序数组）：
  *    - style: 'dropdown' — 有子菜单；children 每项含 label, icon, bg, url（点击跳转）
@@ -484,6 +485,44 @@ function buildHomeCategoriesPayload() {
   ];
 }
 
+/** 卡片圆标底色；list 项未带 color 时由服务端补缺（后续可改读配置 / DB） */
+const RESOURCE_CARD_PALETTE = [
+  '#1677ff',
+  '#ff6a00',
+  '#7c3aed',
+  '#059669',
+  '#0ea5e9',
+  '#e11d48',
+  '#f59e0b',
+  '#2563eb',
+  '#db2777',
+  '#65a30d',
+];
+
+function pickResourceListColor(id, index) {
+  const s = String(id != null ? id : `idx-${index}`);
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = (h + s.charCodeAt(i) * (i + 1)) % RESOURCE_CARD_PALETTE.length;
+  }
+  const k = (h + index * 3) % RESOURCE_CARD_PALETTE.length;
+  return RESOURCE_CARD_PALETTE[k];
+}
+
+function enrichHomeCategoriesListColors(categories) {
+  if (!Array.isArray(categories)) return [];
+  return categories.map((cat) => ({
+    ...cat,
+    list: (cat.list || []).map((row, i) => ({
+      ...row,
+      color:
+        row.color && String(row.color).trim()
+          ? String(row.color).trim()
+          : pickResourceListColor(row.id != null ? row.id : `${cat.id}-${i}`, i),
+    })),
+  }));
+}
+
 class NavigaHomeService extends BaseService {
   constructor() {
     super({
@@ -498,7 +537,22 @@ class NavigaHomeService extends BaseService {
     const p = this.prefix;
     app.get(`${p}/bootstrap`, (req, reply) => this.bootstrap(req, reply));
     app.get(`${p}/page-config`, (req, reply) => this.pageConfig(req, reply));
+    app.get(`${p}/home-categories`, (req, reply) => this.homeCategories(req, reply));
     app.get(`${p}/test`, (req, reply) => this.test(req, reply));
+  }
+
+  async homeCategories(req, reply) {
+    void reply;
+    try {
+      const categories = enrichHomeCategoriesListColors(buildHomeCategoriesPayload());
+      return R({ Succeed: true, Message: '', Data: { categories } });
+    } catch (err) {
+      return R({
+        Succeed: false,
+        Message: err.message || '加载首页分类区块失败',
+        Data: null,
+      });
+    }
   }
 
   async pageConfig(req, reply) {
@@ -662,8 +716,7 @@ class NavigaHomeService extends BaseService {
         { label: '更多导航', bg: '#64748b', icon: '···', url: 'https://hao.uisdc.com/' },
       ];
 
-      const homeCategories = buildHomeCategoriesPayload();
-      const data = { menus, allNavPopover, searchEngines, hotSearchTags, homeCategories };
+      const data = { menus, allNavPopover, searchEngines, hotSearchTags };
       return R({ Succeed: true, Message: '', Data: data });
     } catch (err) {
       return R({ Succeed: false, Message: err.message || '加载页面配置失败', Data: null });
