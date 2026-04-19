@@ -41,12 +41,12 @@ class TradeRecordsService extends BaseService {
     });
 
     m = this._dtoFilter(this._datesToString(m), 'detail');
-    return R({ Succeed: true, Data: m });
+    return R({ succeed: true, data: m });
   }
 
   async save(req, reply) {
     const params = this._params(req);
-    if (!params.model) return R({ Succeed: false, Message: '传入参数有误' });
+    if (!params.model) return R({ succeed: false, msg: '传入参数有误' });
 
     const result = await this.myService.Transaction(async (db) => {
       return this._saveImpl(params, db, params.hasOwnProperty('isSaveDetailed') ? params.isSaveDetailed : true);
@@ -62,10 +62,10 @@ class TradeRecordsService extends BaseService {
     let newModel = await this.myService.Get({ id: m.id, isLoadDetailed: true, userId: params.userId, db });
     if (newModel) newModel = this._dtoFilter(this._datesToString(newModel), 'detail');
     return R({
-      Succeed: !this.myService.IDIsEmpty(m.id),
-      Message: !this.myService.IDIsEmpty(m.id) ? '保存成功' : '保存失败',
-      Data: m.id,
-      Data1: newModel,
+      succeed: !this.myService.IDIsEmpty(m.id),
+      msg: !this.myService.IDIsEmpty(m.id) ? '保存成功' : '保存失败',
+      data: m.id,
+      data1: newModel,
     });
   }
 
@@ -78,7 +78,7 @@ class TradeRecordsService extends BaseService {
       if (params.id && !this.myService.IDIsEmpty(params.id)) {
         return this.myService.Delete({ id: params.id, userId: params.userId, db });
       }
-      return R({ Succeed: false, Message: '传入参数有误' });
+      return R({ succeed: false, msg: '传入参数有误' });
     });
     return result;
   }
@@ -89,46 +89,46 @@ class TradeRecordsService extends BaseService {
     const strOrder = this.myService.getOrderString(params.sortObj);
     const isLoadDetailed = params.isLoadDetailed != null ? params.isLoadDetailed : false;
 
-    const data = R({ Succeed: true, Data: {} });
+    const data = R({ succeed: true, data: {} });
 
     if (params.isAllData) {
       const MAX_ALL = 5000;
-      data.Data.Items = await this.myService.GetListForPageIndex({
+      data.data.Items = await this.myService.GetListForPageIndex({
         strWhere: search.sql, strParams: search.params,
         strOrder, pageIndex: 0, onePageCount: MAX_ALL, isLoadDetailed, userId: params.userId,
       });
-      data.Data.DataTotal = data.Data.Items.length;
+      data.data.DataTotal = data.data.Items.length;
     } else {
-      data.Data.PageIndex = params.PageIndex ? parseInt(params.PageIndex) : 1;
-      data.Data.OnePageCount = params.onePageCount ? parseInt(params.onePageCount) : this.myService.myConfig.dbConfig.onePageCount;
+      data.data.PageIndex = params.PageIndex ? parseInt(params.PageIndex) : 1;
+      data.data.OnePageCount = params.onePageCount ? parseInt(params.onePageCount) : this.myService.myConfig.dbConfig.onePageCount;
 
       const cachedTotal = params.DataTotal && params.DataTotal > 0 ? parseInt(params.DataTotal) : 0;
       const [items, total] = await Promise.all([
         this.myService.GetListForPageIndex({
           strWhere: search.sql, strParams: search.params,
-          strOrder, pageIndex: data.Data.PageIndex - 1,
-          onePageCount: data.Data.OnePageCount, isLoadDetailed, userId: params.userId,
+          strOrder, pageIndex: data.data.PageIndex - 1,
+          onePageCount: data.data.OnePageCount, isLoadDetailed, userId: params.userId,
         }),
         cachedTotal ? Promise.resolve(cachedTotal) : this.myService.Count({
           strWhere: search.sql, strParams: search.params, userId: params.userId,
         }),
       ]);
-      data.Data.Items = items;
-      data.Data.DataTotal = total;
+      data.data.Items = items;
+      data.data.DataTotal = total;
     }
 
-    data.Data.Items = this._dtoFilter(data.Data.Items, 'list');
+    data.data.Items = this._dtoFilter(data.data.Items, 'list');
     return this._datesToString(data);
   }
   async batchAdd(req, reply) {
     const params = this._params(req);
     if (!params.model?.batchAddText) {
-      return R({ Succeed: false, Message: '批量数据不能为空' });
+      return R({ succeed: false, msg: '批量数据不能为空' });
     }
 
     const lines = params.model.batchAddText.split('\n').filter(e => e.trim());
     if (!lines.length) {
-      return R({ Succeed: false, Message: '未解析到有效数据' });
+      return R({ succeed: false, msg: '未解析到有效数据' });
     }
 
     const models = lines.map(line => {
@@ -142,8 +142,8 @@ class TradeRecordsService extends BaseService {
       return this.myService.AddOrUpdateList({ models, userId: params.userId, db });
     });
 
-    if (!result.Succeed) return result;
-    return R({ Succeed: true, Message: `批量新增 ${models.length} 条成功` });
+    if (!result.succeed) return result;
+    return R({ succeed: true, msg: `批量新增 ${models.length} 条成功` });
   }
 }
 

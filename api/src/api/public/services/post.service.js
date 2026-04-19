@@ -51,7 +51,7 @@ class PostService extends BaseService {
     });
 
     m = this._dtoFilter(this._datesToString(m), 'detail');
-    return R({ Succeed: true, Message: '操作成功', toRuoyi: true, Data: this.myModel.data(m) });
+    return R({ succeed: true, msg: '操作成功', toRuoyi: true, data: this.myModel.data(m) });
   }
 
   async save(req, reply) {
@@ -86,10 +86,10 @@ class PostService extends BaseService {
     let newModel = await this.myService.Get({ id: m.post_id, isLoadDetailed: true, userId: params.userId, db });
     if (newModel) newModel = this._dtoFilter(this._datesToString(newModel), 'detail');
     return R({
-      Succeed: !this.myService.IDIsEmpty(m.post_id),
-      Message: !this.myService.IDIsEmpty(m.post_id) ? '保存成功' : '保存失败',
-      Data: m.post_id,
-      Data1: newModel,
+      succeed: !this.myService.IDIsEmpty(m.post_id),
+      msg: !this.myService.IDIsEmpty(m.post_id) ? '保存成功' : '保存失败',
+      data: m.post_id,
+      data1: newModel,
     });
   }
 
@@ -102,7 +102,7 @@ class PostService extends BaseService {
       if (params.id && !this.myService.IDIsEmpty(params.id)) {
         return this.myService.Delete({ id: params.id, userId: params.userId, db });
       }
-      return R({ Succeed: false, Message: '传入参数有误' });
+      return R({ succeed: false, msg: '传入参数有误' });
     });
     return result;
   }

@@ -24,13 +24,13 @@ async function authPlugin(app, opts) {
     if (isWhitelisted(req.url)) return;
 
     if (!authHeader) {
-      reply.code(401).send({ Succeed: false, Message: '未授权访问', Code: 401 });
+      reply.code(401).send({ succeed: false, msg: '未授权访问', code: 401 });
       return;
     }
 
     const token = authHeader.replace('Bearer ', '').replace(/"/g, '');
     if (!token || token === 'undefined') {
-      reply.code(401).send({ Succeed: false, Message: '未授权访问', Code: 401 });
+      reply.code(401).send({ succeed: false, msg: '未授权访问', code: 401 });
       return;
     }
 
@@ -41,7 +41,7 @@ async function authPlugin(app, opts) {
         req.isAdmin = req.userId === 1;
       }
     } catch {
-      reply.code(401).send({ Succeed: false, Message: '无效或过期的 token', Code: 401 });
+      reply.code(401).send({ succeed: false, msg: '无效或过期的 token', code: 401 });
     }
   });
 }

@@ -11,14 +11,14 @@ async function errorHandlerPlugin(app) {
     }
 
     reply.code(code).send({
-      Succeed: false,
-      Message: error.message || '服务器错误',
-      Code: code,
+      succeed: false,
+      msg: error.message || '服务器错误',
+      code: code,
     });
   });
 
   app.setNotFoundHandler((req, reply) => {
-    reply.code(404).send({ Succeed: false, Message: '接口不存在', Code: 404 });
+    reply.code(404).send({ succeed: false, msg: '接口不存在', code: 404 });
   });
 }
 

@@ -9,6 +9,7 @@ const util = require('../../../utils');
 const model = require('../model/system_file.model');
 const fileTypeEntity = require('../model/system_file_type.model');
 const factory = require('../factory');
+const { R } = require('../../../core/errors');
 
 /**
  * system_file — 核心表
@@ -108,7 +109,7 @@ class SystemFileRepo extends Dal {
    */
   async AddOrUpdateMulti({ files, name, tableId, isDeleteOther = true, userId, db }) {
     if (!files) {
-      return util.BaseRetrun({ Succeed: false, Message: '文件列表未定义' });
+      return R({ succeed: false, msg: '文件列表未定义' });
     }
     const factory = require('../factory');
     const fileTypeService = factory.system_file_typeRepo;
@@ -124,7 +125,7 @@ class SystemFileRepo extends Dal {
       fileTypeModel.Name = name;
       fileTypeModel.id = await fileTypeService.AddOrUpdate({ model: fileTypeModel, userId, db });
       if (fileTypeService.IDIsEmpty(fileTypeModel.id)) {
-        return util.BaseRetrun({ Succeed: false, Message: `保存附件数据类型${name}失败` });
+        return R({ succeed: false, msg: `保存附件数据类型${name}失败` });
       }
     }
     const baseUpload = this.myConfig.upload.fullPath;

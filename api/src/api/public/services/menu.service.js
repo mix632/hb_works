@@ -46,7 +46,7 @@ class MenuService extends BaseService {
       strParams: search.params,
     });
     const data = menus.map((e) => this.myModel.data(e));
-    return R({ Succeed: true, Message: '操作成功', toRuoyi: true, params: { data } });
+    return R({ succeed: true, msg: '操作成功', toRuoyi: true, params: { data } });
   }
 
   /** test/public menu.service — copy（POST body / GET :menuId） */
@@ -55,24 +55,24 @@ class MenuService extends BaseService {
     const rawId = req.params.menuId ?? params.menuId ?? params.id;
     const sourceId = rawId != null && rawId !== '' ? parseInt(rawId, 10) : NaN;
     if (Number.isNaN(sourceId)) {
-      return R({ Succeed: false, Message: '缺少或无效的菜单 id', toRuoyi: true });
+      return R({ succeed: false, msg: '缺少或无效的菜单 id', toRuoyi: true });
     }
     let m = await this.myService.Get({ id: sourceId, isLoadDetailed: true, userId: params.userId });
     if (!m) {
-      return R({ Succeed: false, Message: '未能找到复制源数据', toRuoyi: true });
+      return R({ succeed: false, msg: '未能找到复制源数据', toRuoyi: true });
     }
     m.menu_id = 0;
     m.order_num = 0;
     m.menu_name = `${m.menu_name} 复制`;
     m.menu_id = await this.myService.AddOrUpdate({ model: m, userId: params.userId });
     if (this.myService.IDIsEmpty(m.menu_id)) {
-      return R({ Succeed: false, Message: '菜单复制失败', toRuoyi: true });
+      return R({ succeed: false, msg: '菜单复制失败', toRuoyi: true });
     }
     const saved = await this.myService.Get({ id: m.menu_id, isLoadDetailed: true, userId: params.userId });
     return R({
-      Succeed: true,
-      Message: '菜单复制成功，请编辑',
-      Data: saved ? this.myModel.data(saved) : null,
+      succeed: true,
+      msg: '菜单复制成功，请编辑',
+      data: saved ? this.myModel.data(saved) : null,
       toRuoyi: true,
     });
   }
@@ -117,8 +117,8 @@ class MenuService extends BaseService {
     }
     // 与 test/public role.getMenuTree：params.menus + params.checkedKeys（勿用 Data，否则 toRuoyi 只塞 data、缺 menus）
     return R({
-      Succeed: true,
-      Message: '操作成功',
+      succeed: true,
+      msg: '操作成功',
       toRuoyi: true,
       params: { menus: roots, checkedKeys },
     });
@@ -150,10 +150,10 @@ class MenuService extends BaseService {
     };
     diguiMenu(roots, menus);
     return R({
-      Succeed: true,
-      Message: '操作成功',
+      succeed: true,
+      msg: '操作成功',
       toRuoyi: true,
-      Data: roots,
+      data: roots,
     });
   }
 
@@ -168,7 +168,7 @@ class MenuService extends BaseService {
     });
 
     m = this._dtoFilter(this._datesToString(m), 'detail');
-    return R({ Succeed: true, toRuoyi: true, Data: this.myModel.data(m) });
+    return R({ succeed: true, toRuoyi: true, data: this.myModel.data(m) });
   }
 
   async save(req, reply) {
@@ -215,10 +215,10 @@ class MenuService extends BaseService {
     let newModel = await this.myService.Get({ id: m.menu_id, isLoadDetailed: true, userId: params.userId, db });
     if (newModel) newModel = this._dtoFilter(this._datesToString(newModel), 'detail');
     return R({
-      Succeed: !this.myService.IDIsEmpty(m.menu_id),
-      Message: !this.myService.IDIsEmpty(m.menu_id) ? '保存成功' : '保存失败',
-      Data: m.menu_id,
-      Data1: newModel,
+      succeed: !this.myService.IDIsEmpty(m.menu_id),
+      msg: !this.myService.IDIsEmpty(m.menu_id) ? '保存成功' : '保存失败',
+      data: m.menu_id,
+      data1: newModel,
     });
   }
 
@@ -231,7 +231,7 @@ class MenuService extends BaseService {
       if (params.id && !this.myService.IDIsEmpty(params.id)) {
         return this.myService.Delete({ id: params.id, userId: params.userId, db });
       }
-      return R({ Succeed: false, Message: '传入参数有误' });
+      return R({ succeed: false, msg: '传入参数有误' });
     });
     return result;
   }

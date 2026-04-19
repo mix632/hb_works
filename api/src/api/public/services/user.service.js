@@ -68,17 +68,17 @@ class UserService extends BaseService {
     const params = this._params(req);
     const user = await this.myService.Get({ id: params.userId });
     if (!user) {
-      return R({ Succeed: false, Message: '未能获取用户信息', toRuoyi: true });
+      return R({ succeed: false, msg: '未能获取用户信息', toRuoyi: true });
     }
     if (String(user.password).toLowerCase() !== md5Hex(params.oldPassword).toLowerCase()) {
-      return R({ Succeed: false, Message: '密码错误', toRuoyi: true });
+      return R({ succeed: false, msg: '密码错误', toRuoyi: true });
     }
     user.password = md5Hex(params.newPassword);
     user.user_id = await this.myService.AddOrUpdate({ model: user });
     if (this.myService.IDIsEmpty(user.user_id)) {
-      return R({ Succeed: false, Message: '修改密码失败', toRuoyi: true });
+      return R({ succeed: false, msg: '修改密码失败', toRuoyi: true });
     }
-    return R({ Succeed: true, Message: '修改密码成功', toRuoyi: true });
+    return R({ succeed: true, msg: '修改密码成功', toRuoyi: true });
   }
 
   async resetPwd(req, reply) {
@@ -88,14 +88,14 @@ class UserService extends BaseService {
     const targetUserId = !Number.isNaN(fromBody) ? fromBody : params.userId;
     const u = await this.myService.Get({ id: targetUserId });
     if (!u) {
-      return R({ Succeed: false, Message: '未能获取用户信息', toRuoyi: true });
+      return R({ succeed: false, msg: '未能获取用户信息', toRuoyi: true });
     }
     u.password = md5Hex(b.password ?? params.password);
     u.user_id = await this.myService.AddOrUpdate({ model: u });
     if (this.myService.IDIsEmpty(u.user_id)) {
-      return R({ Succeed: false, Message: '修改密码失败', toRuoyi: true });
+      return R({ succeed: false, msg: '修改密码失败', toRuoyi: true });
     }
-    return R({ Succeed: true, Message: '修改密码成功', toRuoyi: true });
+    return R({ succeed: true, msg: '修改密码成功', toRuoyi: true });
   }
 
   /** 若依：管理员重置用户密码 — PUT|POST /system/user/resetPwd */
@@ -110,18 +110,18 @@ class UserService extends BaseService {
     }
     const password = b.password ?? q.password;
     if (password == null || password === '') {
-      return R({ Succeed: false, Message: '请输入新密码', toRuoyi: true });
+      return R({ succeed: false, msg: '请输入新密码', toRuoyi: true });
     }
     const user = await this.myService.Get({ id: targetId });
     if (!user) {
-      return R({ Succeed: false, Message: '未能获取用户信息', toRuoyi: true });
+      return R({ succeed: false, msg: '未能获取用户信息', toRuoyi: true });
     }
     user.password = md5Hex(password);
     user.user_id = await this.myService.AddOrUpdate({ model: user });
     if (this.myService.IDIsEmpty(user.user_id)) {
-      return R({ Succeed: false, Message: '重置密码失败', toRuoyi: true });
+      return R({ succeed: false, msg: '重置密码失败', toRuoyi: true });
     }
-    return R({ Succeed: true, Message: '重置密码成功', toRuoyi: true });
+    return R({ succeed: true, msg: '重置密码成功', toRuoyi: true });
   }
 
   /** test/public user.service — get */
@@ -151,12 +151,12 @@ class UserService extends BaseService {
       });
     } else {
       if (params.checkEmpty) {
-        return R({ Succeed: false, Message: params.checkMsg || '未能找到用户信息', Code: 403 });
+        return R({ succeed: false, msg: params.checkMsg || '未能找到用户信息', code: 403 });
       }
       data = this.myModel.CopyData({});
     }
     if (!data) {
-      return R({ Succeed: false, Message: '未能找到用户数据' });
+      return R({ succeed: false, msg: '未能找到用户数据' });
     }
     data = this.myModel.data(data);
     let posts = await postRepo.GetList({ strWhere: '' });
@@ -178,21 +178,21 @@ class UserService extends BaseService {
       roleIds: user_role.map((e) => e.role_id),
       postIds: user_post.map((e) => e.post_id),
     };
-    return R({ Succeed: true, Message: '操作成功', Data: data, params: extra, toRuoyi: true });
+    return R({ succeed: true, msg: '操作成功', data: data, params: extra, toRuoyi: true });
   }
 
   /** test/public user.service — save（若依 camelCase 表单） */
   async systemUserSave(req, reply) {
     const params = this._params(req);
     const m = params.model;
-    if (!m) return R({ Succeed: false, Message: '传入参数有误', toRuoyi: true });
+    if (!m) return R({ succeed: false, msg: '传入参数有误', toRuoyi: true });
 
     const exist = await this.myService.Get({
       strWhere: 'sys_user.user_name = :_un',
       strParams: { _un: m.userName },
     });
     if (exist && exist.user_id != m.userId) {
-      return R({ Succeed: false, Message: `${m.userName} 已经存在，请换一个用户名`, toRuoyi: true });
+      return R({ succeed: false, msg: `${m.userName} 已经存在，请换一个用户名`, toRuoyi: true });
     }
     const oldModel = m.userId ? await this.myService.Get({ id: m.userId }) : null;
     const password = oldModel ? oldModel.password : (m.password ? md5Hex(m.password) : '');
@@ -233,7 +233,7 @@ class UserService extends BaseService {
         db,
       });
       if (this.myService.IDIsEmpty(row.user_id)) {
-        return R({ Succeed: false, Message: '用户数据保存失败', toRuoyi: true });
+        return R({ succeed: false, msg: '用户数据保存失败', toRuoyi: true });
       }
       await userRoleRepo.Delete({
         strWhere: 'sys_user_role.user_id = :_uid',
@@ -263,14 +263,14 @@ class UserService extends BaseService {
           isNotCheckModel: true,
         });
       }
-      return R({ Succeed: true });
+      return R({ succeed: true });
     });
-    if (!inner.Succeed) return inner;
+    if (!inner.succeed) return inner;
     const saved = await this.myService.Get({ id: row.user_id, isLoadDetailed: true, userId: params.userId });
     return R({
-      Succeed: true,
-      Message: '保存成功',
-      Data: saved ? this.myModel.data(saved) : this.myModel.data(row),
+      succeed: true,
+      msg: '保存成功',
+      data: saved ? this.myModel.data(saved) : this.myModel.data(row),
       toRuoyi: true,
     });
   }
@@ -284,7 +284,7 @@ class UserService extends BaseService {
 
     let user = await this.myService.Get({ id: params.userId });
     if (!user) {
-      return R({ Succeed: false, Message: '获取个人信息失败', toRuoyi: true });
+      return R({ succeed: false, msg: '获取个人信息失败', toRuoyi: true });
     }
     user = this.myModel.data(user);
     let dept = user.deptId ? await deptRepo.Get({ id: user.deptId }) : null;
@@ -303,7 +303,7 @@ class UserService extends BaseService {
       postGroup: posts.map((e) => e.post_name).join(','),
       roleGroup: roles.map((e) => e.role_name).join(','),
     };
-    return R({ Succeed: true, Data: user, params: extra, toRuoyi: true });
+    return R({ succeed: true, data: user, params: extra, toRuoyi: true });
   }
 
   /** test/public user.service — profileSave */
@@ -311,7 +311,7 @@ class UserService extends BaseService {
     const params = this._params(req);
     let user = await this.myService.Get({ id: params.userId });
     if (!user) {
-      return R({ Succeed: false, Message: '获取个人信息失败', toRuoyi: true });
+      return R({ succeed: false, msg: '获取个人信息失败', toRuoyi: true });
     }
     user.phonenumber = params.phonenumber;
     user.email = params.email;
@@ -319,27 +319,27 @@ class UserService extends BaseService {
     user.nick_name = params.nickName;
     user.user_id = await this.myService.AddOrUpdate({ model: user, userId: params.userId });
     if (this.myService.IDIsEmpty(user.user_id)) {
-      return R({ Succeed: false, Message: '资料修改失败' });
+      return R({ succeed: false, msg: '资料修改失败' });
     }
-    return R({ Succeed: true, Message: '资料修改成功', toRuoyi: true });
+    return R({ succeed: true, msg: '资料修改成功', toRuoyi: true });
   }
 
   /** test/public user.service — changeStatus */
   async systemUserChangeStatus(req, reply) {
     const params = this._params(req);
     if (String(params.modifyUserId) === String(params.userId)) {
-      return R({ Succeed: false, Message: '自己不能停自己的账号', toRuoyi: true });
+      return R({ succeed: false, msg: '自己不能停自己的账号', toRuoyi: true });
     }
     let user = await this.myService.Get({ id: params.modifyUserId });
     if (!user) {
-      return R({ Succeed: false, Message: '未能找到用户信息', toRuoyi: true });
+      return R({ succeed: false, msg: '未能找到用户信息', toRuoyi: true });
     }
     user.status = params.status;
     user.user_id = await this.myService.AddOrUpdate({ model: user, userId: params.userId });
     if (this.myService.IDIsEmpty(user.user_id)) {
-      return R({ Succeed: false, Message: '数据保存失败' });
+      return R({ succeed: false, msg: '数据保存失败' });
     }
-    return R({ Succeed: true, toRuoyi: true });
+    return R({ succeed: true, toRuoyi: true });
   }
 
   /** test/public user.service — export */
@@ -352,8 +352,8 @@ class UserService extends BaseService {
   /** test/public user.service — setAvatar */
   async systemUserSetAvatar(req, reply) {
     return R({
-      Succeed: false,
-      Message: '头像上传需配置文件上传服务（原 Moleculer base.public.myupload）',
+      succeed: false,
+      msg: '头像上传需配置文件上传服务（原 Moleculer base.public.myupload）',
       toRuoyi: true,
     });
   }
@@ -382,7 +382,7 @@ class UserService extends BaseService {
       const ids = Array.isArray(params.ids) ? params.ids : String(params.ids).split(',');
       datas = await this.myService.GetList({ ids });
     }
-    return R({ Succeed: true, Data: datas });
+    return R({ succeed: true, data: datas });
   }
 
   /** GET /ruoyi/system/user/:id */
@@ -524,7 +524,7 @@ class UserService extends BaseService {
       children: [],
     }));
     const tree = this._buildDeptTreeFromFlat(flat);
-    return R({ Succeed: true, Data: tree, toRuoyi: true });
+    return R({ succeed: true, data: tree, toRuoyi: true });
   }
 
   async get(req, reply) {
@@ -538,12 +538,12 @@ class UserService extends BaseService {
     });
 
     m = this._dtoFilter(this._datesToString(m), 'detail');
-    return R({ Succeed: true, Data: m });
+    return R({ succeed: true, data: m });
   }
 
   async save(req, reply) {
     const params = this._params(req);
-    if (!params.model) return R({ Succeed: false, Message: '传入参数有误' });
+    if (!params.model) return R({ succeed: false, msg: '传入参数有误' });
 
     const result = await this.myService.Transaction(async (db) => {
       return this._saveImpl(params, db, params.hasOwnProperty('isSaveDetailed') ? params.isSaveDetailed : true);
@@ -558,10 +558,10 @@ class UserService extends BaseService {
     let newModel = await this.myService.Get({ id: m.user_id, isLoadDetailed: true, userId: params.userId, db });
     if (newModel) newModel = this._dtoFilter(this._datesToString(newModel), 'detail');
     return R({
-      Succeed: !this.myService.IDIsEmpty(m.user_id),
-      Message: !this.myService.IDIsEmpty(m.user_id) ? '保存成功' : '保存失败',
-      Data: m.user_id,
-      Data1: newModel,
+      succeed: !this.myService.IDIsEmpty(m.user_id),
+      msg: !this.myService.IDIsEmpty(m.user_id) ? '保存成功' : '保存失败',
+      data: m.user_id,
+      data1: newModel,
     });
   }
 
@@ -574,7 +574,7 @@ class UserService extends BaseService {
       if (params.id && !this.myService.IDIsEmpty(params.id)) {
         return this.myService.Delete({ id: params.id, userId: params.userId, db });
       }
-      return R({ Succeed: false, Message: '传入参数有误' });
+      return R({ succeed: false, msg: '传入参数有误' });
     });
     return result;
   }
@@ -585,35 +585,35 @@ class UserService extends BaseService {
     const strOrder = this.myService.getOrderString(params.sortObj);
     const isLoadDetailed = params.isLoadDetailed != null ? params.isLoadDetailed : false;
 
-    const data = R({ Succeed: true, Data: {} });
+    const data = R({ succeed: true, data: {} });
 
     if (params.isAllData) {
       const MAX_ALL = 5000;
-      data.Data.Items = await this.myService.GetListForPageIndex({
+      data.data.Items = await this.myService.GetListForPageIndex({
         strWhere: search.sql, strParams: search.params,
         strOrder, pageIndex: 0, onePageCount: MAX_ALL, isLoadDetailed, userId: params.userId,
       });
-      data.Data.DataTotal = data.Data.Items.length;
+      data.data.DataTotal = data.data.Items.length;
     } else {
-      data.Data.PageIndex = params.PageIndex ? parseInt(params.PageIndex) : 1;
-      data.Data.OnePageCount = params.onePageCount ? parseInt(params.onePageCount) : this.myService.myConfig.dbConfig.onePageCount;
+      data.data.PageIndex = params.PageIndex ? parseInt(params.PageIndex) : 1;
+      data.data.OnePageCount = params.onePageCount ? parseInt(params.onePageCount) : this.myService.myConfig.dbConfig.onePageCount;
 
       const cachedTotal = params.DataTotal && params.DataTotal > 0 ? parseInt(params.DataTotal) : 0;
       const [items, total] = await Promise.all([
         this.myService.GetListForPageIndex({
           strWhere: search.sql, strParams: search.params,
-          strOrder, pageIndex: data.Data.PageIndex - 1,
-          onePageCount: data.Data.OnePageCount, isLoadDetailed, userId: params.userId,
+          strOrder, pageIndex: data.data.PageIndex - 1,
+          onePageCount: data.data.OnePageCount, isLoadDetailed, userId: params.userId,
         }),
         cachedTotal ? Promise.resolve(cachedTotal) : this.myService.Count({
           strWhere: search.sql, strParams: search.params, userId: params.userId,
         }),
       ]);
-      data.Data.Items = items;
-      data.Data.DataTotal = total;
+      data.data.Items = items;
+      data.data.DataTotal = total;
     }
 
-    data.Data.Items = this._dtoFilter(data.Data.Items, 'list');
+    data.data.Items = this._dtoFilter(data.data.Items, 'list');
     return this._datesToString(data);
   }
   async setValues(req, reply) {

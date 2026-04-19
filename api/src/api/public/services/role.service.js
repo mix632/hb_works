@@ -83,7 +83,7 @@ class RoleService extends BaseService {
     });
 
     m = this._dtoFilter(this._datesToString(m), 'detail');
-    return R({ Succeed: true, Data: this.myModel.data(m), toRuoyi: true });
+    return R({ succeed: true, data: this.myModel.data(m), toRuoyi: true });
   }
 
   /**
@@ -121,7 +121,7 @@ class RoleService extends BaseService {
     const result = await this.myService.Transaction(async (db) => {
       m.role_id = await this.myService.AddOrUpdate({ model: m, userId: params.userId, isSaveDetailed, db });
       if (!m.role_id) {
-        return R({ Succeed: false, Message: '数据保存失败' });
+        return R({ succeed: false, msg: '数据保存失败' });
       }
 
       const roleMenuRepo = this.factory.sys_role_menuRepo;
@@ -136,7 +136,7 @@ class RoleService extends BaseService {
       if (addIds.length) {
         addIds = addIds.map((e) => ({ role_id: m.role_id, menu_id: e }));
         const succeed = await roleMenuRepo.AddOrUpdateList({ models: addIds, userId: params.userId, db });
-        if (!succeed.Succeed) {
+        if (!succeed.succeed) {
           return succeed;
         }
       }
@@ -150,7 +150,7 @@ class RoleService extends BaseService {
           userId: params.userId,
           db,
         });
-        if (!succeed.Succeed) {
+        if (!succeed.succeed) {
           return succeed;
         }
       }
@@ -158,10 +158,10 @@ class RoleService extends BaseService {
       let newModel = await this.myService.Get({ id: m.role_id, isLoadDetailed: true, userId: params.userId, db });
       if (newModel) newModel = this._dtoFilter(this._datesToString(newModel), 'detail');
       return R({
-        Succeed: true,
-        Message: '数据保存成功',
-        Data: m.role_id,
-        Data1: newModel,
+        succeed: true,
+        msg: '数据保存成功',
+        data: m.role_id,
+        data1: newModel,
       });
     });
     return result;
@@ -176,7 +176,7 @@ class RoleService extends BaseService {
       if (params.id && !this.myService.IDIsEmpty(params.id)) {
         return this.myService.Delete({ id: params.id, userId: params.userId, db });
       }
-      return R({ Succeed: false, Message: '传入参数有误' });
+      return R({ succeed: false, msg: '传入参数有误' });
     });
     return result;
   }

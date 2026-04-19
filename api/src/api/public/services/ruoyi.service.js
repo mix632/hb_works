@@ -76,7 +76,7 @@ class RuoyiService extends BaseService {
     const env = config.currentConfig || {};
     if (!params.onlyCheckUser && env.loginCheckBag) {
       if (!params.bagId) {
-        return R({ Succeed: false, Message: '未选择业务线', toRuoyi: true });
+        return R({ succeed: false, msg: '未选择业务线', toRuoyi: true });
       }
     }
 
@@ -88,7 +88,7 @@ class RuoyiService extends BaseService {
         strParams: { _un: params.username, _pwd: pwd },
       });
       if (!user) {
-        return R({ Succeed: false, Message: '用户名或密码不对，请检查', toRuoyi: true });
+        return R({ succeed: false, msg: '用户名或密码不对，请检查', toRuoyi: true });
       }
     } else if (params.miniProgram) {
       user = await userRepo.Get({
@@ -97,17 +97,17 @@ class RuoyiService extends BaseService {
         isLoadDetailed: true,
       });
       if (!user) {
-        return R({ Succeed: false, Message: '用户名或密码不对，请检查', toRuoyi: true });
+        return R({ succeed: false, msg: '用户名或密码不对，请检查', toRuoyi: true });
       }
     } else {
-      return R({ Succeed: false, Message: '缺少用户名或小程序参数', toRuoyi: true });
+      return R({ succeed: false, msg: '缺少用户名或小程序参数', toRuoyi: true });
     }
 
     if (util.parseBool(user.status)) {
-      return R({ Succeed: false, Message: '账户已停用', toRuoyi: true });
+      return R({ succeed: false, msg: '账户已停用', toRuoyi: true });
     }
     if (params.onlyCheckUser) {
-      return R({ Succeed: true, Data: user });
+      return R({ succeed: true, data: user });
     }
 
     const menusList = await menuRepo.GetList({ strWhere: `sys_menu.isOpenUrl = '1'` });
@@ -132,9 +132,9 @@ class RuoyiService extends BaseService {
     }
 
     return R({
-      Succeed: true,
-      Message: '登录成功',
-      Data: user.user_id,
+      succeed: true,
+      msg: '登录成功',
+      data: user.user_id,
       params: { token: user.token, toUrl },
       toRuoyi: true,
     });
@@ -146,7 +146,7 @@ class RuoyiService extends BaseService {
     const uid = params.userId;
     let user = await userRepo.Get({ id: uid });
     if (!user) {
-      return R({ Succeed: false, Message: '未能获取用户信息', toRuoyi: true });
+      return R({ succeed: false, msg: '未能获取用户信息', toRuoyi: true });
     }
     user = userModel.data(user);
     const data = {
@@ -154,11 +154,11 @@ class RuoyiService extends BaseService {
       roles: ['admin'],
       user,
     };
-    return R({ params: data, Succeed: true, toRuoyi: true });
+    return R({ params: data, succeed: true, toRuoyi: true });
   }
 
   async logout(req, reply) {
-    return R({ Succeed: true, Message: '退出成功', toRuoyi: true });
+    return R({ succeed: true, msg: '退出成功', toRuoyi: true });
   }
 
   setMenuComponent({ dbData, data }) {
@@ -209,7 +209,7 @@ class RuoyiService extends BaseService {
     });
     this.insertOpenNewPage(roots);
     this.recursionMenu({ menus, roots });
-    return R({ Succeed: true, toRuoyi: true, params: { data: roots } });
+    return R({ succeed: true, toRuoyi: true, params: { data: roots } });
   }
 
   /**
@@ -460,7 +460,7 @@ class RuoyiService extends BaseService {
   }
 
   async sysUserInitPassword(req, reply) {
-    return R({ Succeed: true, Data: '123456', toRuoyi: true });
+    return R({ succeed: true, data: '123456', toRuoyi: true });
   }
 }
 

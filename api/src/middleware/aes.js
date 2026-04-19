@@ -22,7 +22,7 @@ async function aesPlugin(app) {
     try {
       const body = JSON.parse(payload);
       if (body.notEncryption) return payload;
-      if (body.Message) body.Message = encrypt(body.Message);
+      if (body.msg) body.msg = encrypt(body.msg);
       if (body.Data) body.Data = encrypt(body.Data);
       if (body.msg) body.msg = encrypt(body.msg);
       if (body.data) body.data = encrypt(body.data);

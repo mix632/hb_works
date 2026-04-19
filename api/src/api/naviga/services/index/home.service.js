@@ -700,12 +700,12 @@ class NavigaHomeService extends BaseService {
     try {
       const colored = enrichHomeCategoriesListColors(buildHomeCategoriesPayload());
       const categories = enrichHomeCategoriesWithHubFeeds(colored);
-      return R({ Succeed: true, Message: '', Data: { categories } });
+      return R({ succeed: true, msg: '', data: { categories } });
     } catch (err) {
       return R({
-        Succeed: false,
-        Message: err.message || '加载首页分类区块失败',
-        Data: null,
+        succeed: false,
+        msg: err.message || '加载首页分类区块失败',
+        data: null,
       });
     }
   }
@@ -716,7 +716,7 @@ class NavigaHomeService extends BaseService {
       const articleId = req.query && req.query.articleId;
       const parsed = parseHubArticleId(articleId);
       if (!parsed) {
-        return R({ Succeed: false, Message: '无效的文章 id', Data: null });
+        return R({ succeed: false, msg: '无效的文章 id', data: null });
       }
       const { categoryId, n } = parsed;
       const baseCats = enrichHomeCategoriesListColors(buildHomeCategoriesPayload());
@@ -724,15 +724,15 @@ class NavigaHomeService extends BaseService {
       const list = buildHubArticlesForCategory(categoryId, label);
       const article = list[n - 1] || null;
       if (!article) {
-        return R({ Succeed: false, Message: '未找到文章', Data: null });
+        return R({ succeed: false, msg: '未找到文章', data: null });
       }
       const body = buildHubArticleBody(article, label);
-      return R({ Succeed: true, Message: '', Data: { article, body } });
+      return R({ succeed: true, msg: '', data: { article, body } });
     } catch (err) {
       return R({
-        Succeed: false,
-        Message: err.message || '加载文章失败',
-        Data: null,
+        succeed: false,
+        msg: err.message || '加载文章失败',
+        data: null,
       });
     }
   }
@@ -832,13 +832,6 @@ class NavigaHomeService extends BaseService {
       /** Hero 搜索：多引擎 Tab + 占位提示 + 跳转 url + 查询参数名 */
       const searchEngines = [
         {
-          id: 'common',
-          name: '常用',
-          placeholders: ['优设网 国内专业创作者平台', '输入站点或关键词'],
-          url: '',
-          queryKey: '',
-        },
-        {
           id: 'baidu',
           name: '百度',
           placeholders: ['百度一下，你就知道', '输入关键词搜索'],
@@ -847,26 +840,19 @@ class NavigaHomeService extends BaseService {
           buttonText: '百度一下',
         },
         {
+          id: 'bing',
+          name: '必应',
+          placeholders: ['搜教程、文章、资源', '优设网站内搜索'],
+          url: 'https://www.bing.com/search',
+          queryKey: 'q',
+        },
+        {
           id: 'google',
           name: 'Google',
           placeholders: ['Search the web', '输入英文或中文关键词'],
           url: 'https://www.google.com/search',
           queryKey: 'q',
           buttonText: 'Google',
-        },
-        {
-          id: 'uisdc',
-          name: '优设网',
-          placeholders: ['搜教程、文章、资源', '优设网站内搜索'],
-          url: 'https://www.uisdc.com/search',
-          queryKey: 'q',
-        },
-        {
-          id: 'ai-island',
-          name: 'AI星踪岛',
-          placeholders: ['AI 工具与资讯', '发现最新 AI 应用'],
-          url: 'https://www.uisdc.com/aigc/',
-          queryKey: 'q',
         },
       ];
 
@@ -899,9 +885,9 @@ class NavigaHomeService extends BaseService {
       ];
 
       const data = { menus, allNavPopover, searchEngines, hotSearchTags };
-      return R({ Succeed: true, Message: '', Data: data });
+      return R({ succeed: true, msg: '', data: data });
     } catch (err) {
-      return R({ Succeed: false, Message: err.message || '加载页面配置失败', Data: null });
+      return R({ succeed: false, msg: err.message || '加载页面配置失败', data: null });
     }
   }
 }

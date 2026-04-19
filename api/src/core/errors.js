@@ -1,8 +1,8 @@
 'use strict';
 
 class AppError extends Error {
-  constructor(message, code = 500, data = null) {
-    super(message);
+  constructor(msg, code = 500, data = null) {
+    super(msg);
     this.code = code;
     this.data = data;
   }
@@ -23,15 +23,15 @@ class AuthError extends AppError {
 /**
  * 统一返回格式（兼容现有前端）
  */
-function R({ Succeed = false, Message = '', Data = null, Data1 = null, Code = 200, params, notEncryption, toRuoyi = false } = {}) {
-  const obj = { Succeed, Message, Data, Data1, Code };
+function R({ succeed = false, msg = '', data = null, data1 = null, code = 200, params, notEncryption, toRuoyi = false } = {}) {
+  const obj = { succeed, msg, data, data1, code };
   if (params) Object.assign(obj, params);
   if (toRuoyi) {
-    obj.code = Succeed ? 200 : 500;
-    obj.msg = Message;
+    obj.code = succeed ? 200 : 500;
+    obj.msg = msg;
     // 与 test util.BaseRetrun 一致：优先 Data；否则使用 params.data（如 getRouters）；勿用 Data=null 覆盖已 merge 的字段
-    if (Data !== undefined && Data !== null) {
-      obj.data = Data;
+    if (data !== undefined && data !== null) {
+      obj.data = data;
     } else if (params && Object.prototype.hasOwnProperty.call(params, 'data')) {
       obj.data = params.data;
     }

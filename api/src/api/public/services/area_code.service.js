@@ -85,12 +85,12 @@ class AreaCodeService extends BaseService {
     });
 
     m = this._dtoFilter(this._datesToString(m), 'detail');
-    return R({ Succeed: true, Data: m });
+    return R({ succeed: true, data: m });
   }
 
   async save(req, reply) {
     const params = this._params(req);
-    if (!params.model) return R({ Succeed: false, Message: '传入参数有误' });
+    if (!params.model) return R({ succeed: false, msg: '传入参数有误' });
 
     const result = await this.myService.Transaction(async (db) => {
       return this._saveImpl(params, db, params.hasOwnProperty('isSaveDetailed') ? params.isSaveDetailed : true);
@@ -105,10 +105,10 @@ class AreaCodeService extends BaseService {
     let newModel = await this.myService.Get({ id: m.code, isLoadDetailed: true, userId: params.userId, db });
     if (newModel) newModel = this._dtoFilter(this._datesToString(newModel), 'detail');
     return R({
-      Succeed: !this.myService.IDIsEmpty(m.code),
-      Message: !this.myService.IDIsEmpty(m.code) ? '保存成功' : '保存失败',
-      Data: m.code,
-      Data1: newModel,
+      succeed: !this.myService.IDIsEmpty(m.code),
+      msg: !this.myService.IDIsEmpty(m.code) ? '保存成功' : '保存失败',
+      data: m.code,
+      data1: newModel,
     });
   }
 
@@ -121,7 +121,7 @@ class AreaCodeService extends BaseService {
       if (params.code && !this.myService.IDIsEmpty(params.code)) {
         return this.myService.Delete({ id: params.code, userId: params.userId, db });
       }
-      return R({ Succeed: false, Message: '传入参数有误' });
+      return R({ succeed: false, msg: '传入参数有误' });
     });
     return result;
   }
@@ -132,35 +132,35 @@ class AreaCodeService extends BaseService {
     const strOrder = this.myService.getOrderString(params.sortObj);
     const isLoadDetailed = params.isLoadDetailed != null ? params.isLoadDetailed : false;
 
-    const data = R({ Succeed: true, Data: {} });
+    const data = R({ succeed: true, data: {} });
 
     if (params.isAllData) {
       const MAX_ALL = 5000;
-      data.Data.Items = await this.myService.GetListForPageIndex({
+      data.data.Items = await this.myService.GetListForPageIndex({
         strWhere: search.sql, strParams: search.params,
         strOrder, pageIndex: 0, onePageCount: MAX_ALL, isLoadDetailed, userId: params.userId,
       });
-      data.Data.DataTotal = data.Data.Items.length;
+      data.data.DataTotal = data.data.Items.length;
     } else {
-      data.Data.PageIndex = params.PageIndex ? parseInt(params.PageIndex) : 1;
-      data.Data.OnePageCount = params.onePageCount ? parseInt(params.onePageCount) : this.myService.myConfig.dbConfig.onePageCount;
+      data.data.PageIndex = params.PageIndex ? parseInt(params.PageIndex) : 1;
+      data.data.OnePageCount = params.onePageCount ? parseInt(params.onePageCount) : this.myService.myConfig.dbConfig.onePageCount;
 
       const cachedTotal = params.DataTotal && params.DataTotal > 0 ? parseInt(params.DataTotal) : 0;
       const [items, total] = await Promise.all([
         this.myService.GetListForPageIndex({
           strWhere: search.sql, strParams: search.params,
-          strOrder, pageIndex: data.Data.PageIndex - 1,
-          onePageCount: data.Data.OnePageCount, isLoadDetailed, userId: params.userId,
+          strOrder, pageIndex: data.data.PageIndex - 1,
+          onePageCount: data.data.OnePageCount, isLoadDetailed, userId: params.userId,
         }),
         cachedTotal ? Promise.resolve(cachedTotal) : this.myService.Count({
           strWhere: search.sql, strParams: search.params, userId: params.userId,
         }),
       ]);
-      data.Data.Items = items;
-      data.Data.DataTotal = total;
+      data.data.Items = items;
+      data.data.DataTotal = total;
     }
 
-    data.Data.Items = this._dtoFilter(data.Data.Items, 'list');
+    data.data.Items = this._dtoFilter(data.data.Items, 'list');
     return this._datesToString(data);
   }
 }

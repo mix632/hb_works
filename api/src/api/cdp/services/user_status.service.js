@@ -17,13 +17,13 @@ class UserStatusService extends BaseService {
     const origSave = this.save.bind(this);
     this.save = async (req, reply) => {
       const result = await origSave(req, reply);
-      if (result.Succeed) await dictCache.reload('gb_user_status');
+      if (result.succeed) await dictCache.reload('gb_user_status');
       return result;
     };
     const origDelete = this.delete.bind(this);
     this.delete = async (req, reply) => {
       const result = await origDelete(req, reply);
-      if (result.Succeed) await dictCache.reload('gb_user_status');
+      if (result.succeed) await dictCache.reload('gb_user_status');
       return result;
     };
   }

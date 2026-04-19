@@ -4,6 +4,7 @@ const { Dal } = require('../../../core/dal');
 const model = require('../model/sys_area_code.model');
 const factory = require('../factory');
 const util = require('../../../utils');
+const { R } = require('../../../core/errors');
 
 /**
  * sys_area_code — 核心表
@@ -143,7 +144,7 @@ class SysAreaCodeRepo extends Dal {
       isGetValue: true,
       db,
     });
-    return util.BaseRetrun({ Succeed: true, Data: this.rowsToGrouped(rows) });
+    return R({ succeed: true, data: this.rowsToGrouped(rows) });
   }
 
   /**
@@ -152,7 +153,7 @@ class SysAreaCodeRepo extends Dal {
   async ChildrenGrouped({ pcode, keyword = '', userId = 0, db = null }) {
     const parent = pcode != null && pcode !== '' ? String(pcode).replace(/[^\d]/g, '') : '';
     if (!parent) {
-      return util.BaseRetrun({ Succeed: false, Message: '缺少父级区划代码 pcode' });
+      return R({ succeed: false, msg: '缺少父级区划代码 pcode' });
     }
     const kw = (keyword || '').trim();
     let strWhere = 'sys_area_code.pcode = :_pcode';
@@ -172,7 +173,7 @@ class SysAreaCodeRepo extends Dal {
       isGetValue: true,
       db,
     });
-    return util.BaseRetrun({ Succeed: true, Data: this.rowsToGrouped(rows) });
+    return R({ succeed: true, data: this.rowsToGrouped(rows) });
   }
 
   /**
@@ -181,7 +182,7 @@ class SysAreaCodeRepo extends Dal {
   async GetRegionChainByCode({ code, userId = 0, db = null }) {
     const id = String(code || '').replace(/[^\d]/g, '');
     if (!id) {
-      return util.BaseRetrun({ Succeed: false, Message: '缺少 code' });
+      return R({ succeed: false, msg: '缺少 code' });
     }
     const curRows = await this.GetList({
       strWhere: 'sys_area_code.code = :_code',
@@ -189,11 +190,11 @@ class SysAreaCodeRepo extends Dal {
       userId, isLoadDetailed: false, isGetValue: true, db,
     });
     if (!curRows || !curRows.length) {
-      return util.BaseRetrun({ Succeed: false, Message: '未找到区划' });
+      return R({ succeed: false, msg: '未找到区划' });
     }
     let cur = curRows[0];
     if (parseInt(cur.level, 10) !== 3) {
-      return util.BaseRetrun({ Succeed: false, Message: '须选择到区/县（第三级）' });
+      return R({ succeed: false, msg: '须选择到区/县（第三级）' });
     }
     const chain = [];
     while (cur) {
@@ -213,11 +214,11 @@ class SysAreaCodeRepo extends Dal {
     const city = byLevel(2);
     const district = byLevel(3);
     if (!province || !city || !district) {
-      return util.BaseRetrun({ Succeed: false, Message: '区划层级不完整，请检查 pcode / level 数据' });
+      return R({ succeed: false, msg: '区划层级不完整，请检查 pcode / level 数据' });
     }
-    return util.BaseRetrun({
-      Succeed: true,
-      Data: {
+    return R({
+      succeed: true,
+      data: {
         province: province.name || '',
         city: city.name || '',
         district: district.name || '',

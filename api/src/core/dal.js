@@ -308,7 +308,7 @@ class Dal {
   }
 
   async checkAddOrUpdate({ model, userId, db }) {
-    return R({ Succeed: true });
+    return R({ succeed: true });
   }
 
   /**
@@ -380,10 +380,10 @@ class Dal {
     }
   }
 
-  async TotalData({ addOrUpdataModel, deleteIds, db }) { return R({ Succeed: true }); }
+  async TotalData({ addOrUpdataModel, deleteIds, db }) { return R({ succeed: true }); }
 
   async AddOrUpdateList({ models, userId, db = null, isNotCheckModel = false }) {
-    if (!models || !models.length) return R({ Succeed: true, Message: '无数据' });
+    if (!models || !models.length) return R({ succeed: true, msg: '无数据' });
     models = this.modelType.CopyDatas(models);
 
     let ownTx = false;
@@ -396,15 +396,15 @@ class Dal {
         this.SetModelID({ model: m, id });
         if (this.IDIsEmpty(id)) {
           if (ownTx) await db.rollback();
-          return R({ Succeed: false, Message: '数据保存失败' });
+          return R({ succeed: false, msg: '数据保存失败' });
         }
         ids.push(id);
       }
       if (ownTx) await db.commit();
-      return R({ Succeed: true, Data: ids });
+      return R({ succeed: true, data: ids });
     } catch (err) {
       if (ownTx) await db.rollback();
-      return R({ Succeed: false, Message: err.message });
+      return R({ succeed: false, msg: err.message });
     }
   }
 
@@ -426,10 +426,10 @@ class Dal {
         await this._getSeq().query(sql, { type: sequelize.QueryTypes.UPDATE, replacements: params, transaction: db });
       }
     }
-    return R({ Succeed: true });
+    return R({ succeed: true });
   }
 
-  async DeleteFinish({ dataIds, userId, db }) { return R({ Succeed: true }); }
+  async DeleteFinish({ dataIds, userId, db }) { return R({ succeed: true }); }
 
   async Delete({ strWhere, id, ids, strParams, forceExecute = false, userId, db = null }) {
     let ownTx = false;
@@ -448,19 +448,19 @@ class Dal {
         });
         this._bumpTableGen();
         isCommit = true;
-        return R({ Succeed: true, Message: '删除成功' });
+        return R({ succeed: true, msg: '删除成功' });
       }
 
       if (id) ids = [id];
       if (!ids) {
-        if (!strWhere) return R({ Succeed: false, Message: '不能删除所有数据' });
+        if (!strWhere) return R({ succeed: false, msg: '不能删除所有数据' });
         const datas = await this.GetList({ strWhere, strParams, isGetValue: false, userId, db });
         ids = datas.map(e => e[this.primaryKey]);
       }
-      if (!ids.length) return R({ Succeed: true, Message: '满足条件的数据个数为0' });
+      if (!ids.length) return R({ succeed: true, msg: '满足条件的数据个数为0' });
 
       let result = await this.DeleteFront({ dataIds: ids, userId, db });
-      if (!result.Succeed) return result;
+      if (!result.succeed) return result;
 
       let deleteCount = 0;
       if (this.deleteKey) {
@@ -474,12 +474,12 @@ class Dal {
       await this._deleteFromCache(ids);
       this._bumpTableGen();
       result = await this.DeleteFinish({ dataIds: ids, userId, db });
-      if (!result.Succeed) return result;
+      if (!result.succeed) return result;
 
       isCommit = deleteCount === ids.length;
-      return R({ Succeed: isCommit, Message: isCommit ? '删除成功' : '删除失败' });
+      return R({ succeed: isCommit, msg: isCommit ? '删除成功' : '删除失败' });
     } catch (err) {
-      return R({ Succeed: false, Message: err.message });
+      return R({ succeed: false, msg: err.message });
     } finally {
       if (ownTx) { isCommit ? await db.commit() : await db.rollback(); }
     }
@@ -490,7 +490,7 @@ class Dal {
     const sortIndexes = models.map(e => e[this.sortIndex]).sort((a, b) => a - b);
     for (let i = 0; i < models.length; i++) models[i][this.sortIndex] = sortIndexes[i];
     const result = await this.AddOrUpdateList({ models, userId, db });
-    return R({ Succeed: result.Succeed, Message: result.Succeed ? '交换成功' : '交换失败' });
+    return R({ succeed: result.succeed, msg: result.succeed ? '交换成功' : '交换失败' });
   }
 
   async Transaction(call) {
@@ -498,50 +498,50 @@ class Dal {
     let rolled = false;
     try {
       const rtn = await call(db);
-      if (rtn.Succeed) await db.commit(); else { rolled = true; await db.rollback(); }
+      if (rtn.succeed) await db.commit(); else { rolled = true; await db.rollback(); }
       return rtn;
     } catch (err) {
       if (!rolled) await db.rollback();
-      return R({ Succeed: false, Message: err.toString() });
+      return R({ succeed: false, msg: err.toString() });
     }
   }
 
   async RunSql({ sql, strParams, db, type = sequelize.QueryTypes.SELECT }) {
-    if (!sql) return R({ Succeed: false, Message: 'sql不能为空' });
+    if (!sql) return R({ succeed: false, msg: 'sql不能为空' });
     try {
       const data = await this._getSeq().query(sql, { type, replacements: strParams || {}, transaction: db });
-      return R({ Succeed: true, Data: data });
+      return R({ succeed: true, data: data });
     } catch (err) {
       this.log.error({ err, sql }, 'RunSql failed');
-      return R({ Succeed: false, Message: err.message });
+      return R({ succeed: false, msg: err.message });
     }
   }
 
   async RunOneValueSql({ sql, valueName, nullValue, defalutValue = null, db }) {
     const data = await this.RunSql({ sql, db });
-    if (data && data.Succeed && data.Data.length > 0 && valueName in data.Data[0]) {
-      return data.Data[0][valueName] || nullValue;
+    if (data && data.succeed && data.data.length > 0 && valueName in data.data[0]) {
+      return data.data[0][valueName] || nullValue;
     }
     return defalutValue;
   }
 
   async getFields({ id, names, db }) {
     const model = await this.Get({ id, db });
-    if (!model) return R({ Succeed: false, Message: '获取数据失败' });
+    if (!model) return R({ succeed: false, msg: '获取数据失败' });
     const values = { id: model.id };
     for (const n of names) {
       if (Object.prototype.hasOwnProperty.call(model, n)) values[n] = model[n];
     }
-    return R({ Succeed: true, Data: values });
+    return R({ succeed: true, data: values });
   }
 
   async setFields({ id, values, userId, db }) {
     const model = await this.Get({ id, isGetValue: false, db });
-    if (!model) return R({ Succeed: false, Message: '获取数据失败' });
+    if (!model) return R({ succeed: false, msg: '获取数据失败' });
     Object.assign(model, values);
     model.id = await this.AddOrUpdate({ model, userId, db });
-    if (!model.id) return R({ Succeed: false, Message: '数据存储失败' });
-    return R({ Succeed: true, Message: '设置成功' });
+    if (!model.id) return R({ succeed: false, msg: '数据存储失败' });
+    return R({ succeed: true, msg: '设置成功' });
   }
 
   async setValues({ datas, dataIdName, dataValueName, idName, valueName, strWhere, setValueNameFun, userId, db, isGetValue = false }) {
@@ -602,14 +602,14 @@ class Dal {
         deleteParams = { _arrDelIds: deleteIds };
       }
       const result = await factory.Delete({ strWhere: deleteSql, strParams: deleteParams, forceExecute: deleteForceExecute, db });
-      if (!result.Succeed) return R({ Succeed: false, Message: `${factory.tableTitle}保存失败` });
+      if (!result.succeed) return R({ succeed: false, msg: `${factory.tableTitle}保存失败` });
     }
     const adds = dataIds.filter(e => !existModels.some(r => r[dataName] === e)).map(e => modelFun(e));
     if (adds.length) {
       const result = await factory.AddOrUpdateList({ models: adds, db, isNotCheckModel: true });
-      if (!result.Succeed) return R({ Succeed: false, Message: `${factory.tableTitle}保存失败` });
+      if (!result.succeed) return R({ succeed: false, msg: `${factory.tableTitle}保存失败` });
     }
-    return R({ Succeed: true });
+    return R({ succeed: true });
   }
 
   /**

@@ -37,7 +37,7 @@ class DeptService extends BaseService {
     const deptRepo = this.factory.sys_deptRepo;
     const menus = await deptRepo.GetList({ strWhere: '' });
     const data = menus.map((e) => this.myModel.data(e));
-    return R({ Succeed: true, Message: '操作成功', toRuoyi: true, params: { data } });
+    return R({ succeed: true, msg: '操作成功', toRuoyi: true, params: { data } });
   }
 
   /**
@@ -46,7 +46,7 @@ class DeptService extends BaseService {
   async listExclude(req, reply) {
     const excludeId = parseInt(req.params.deptId, 10);
     if (Number.isNaN(excludeId)) {
-      return R({ Succeed: false, Message: '参数错误', toRuoyi: true });
+      return R({ succeed: false, msg: '参数错误', toRuoyi: true });
     }
     const deptRepo = this.factory.sys_deptRepo;
     const all = await deptRepo.GetList({ strWhere: '' });
@@ -60,7 +60,7 @@ class DeptService extends BaseService {
       return !parts.includes(idStr);
     });
     const data = filtered.map((e) => this.myModel.data(e));
-    return R({ Succeed: true, Message: '操作成功', toRuoyi: true, params: { data } });
+    return R({ succeed: true, msg: '操作成功', toRuoyi: true, params: { data } });
   }
 
   async get(req, reply) {
@@ -74,7 +74,7 @@ class DeptService extends BaseService {
     });
 
     m = this._dtoFilter(this._datesToString(m), 'detail');
-    return R({ Succeed: true, toRuoyi: true, Data: this.myModel.data(m) });
+    return R({ succeed: true, toRuoyi: true, data: this.myModel.data(m) });
   }
 
   async save(req, reply) {
@@ -114,10 +114,10 @@ class DeptService extends BaseService {
     let newModel = await this.myService.Get({ id: m.dept_id, isLoadDetailed: true, userId: params.userId, db });
     if (newModel) newModel = this._dtoFilter(this._datesToString(newModel), 'detail');
     return R({
-      Succeed: !this.myService.IDIsEmpty(m.dept_id),
-      Message: !this.myService.IDIsEmpty(m.dept_id) ? '保存成功' : '保存失败',
-      Data: m.dept_id,
-      Data1: newModel,
+      succeed: !this.myService.IDIsEmpty(m.dept_id),
+      msg: !this.myService.IDIsEmpty(m.dept_id) ? '保存成功' : '保存失败',
+      data: m.dept_id,
+      data1: newModel,
     });
   }
 
@@ -130,7 +130,7 @@ class DeptService extends BaseService {
       if (params.id && !this.myService.IDIsEmpty(params.id)) {
         return this.myService.Delete({ id: params.id, userId: params.userId, db });
       }
-      return R({ Succeed: false, Message: '传入参数有误' });
+      return R({ succeed: false, msg: '传入参数有误' });
     });
     return result;
   }

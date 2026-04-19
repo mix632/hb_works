@@ -47,13 +47,13 @@ class CustomerService extends BaseService {
     }
     if (!m) m = this.myModel.CopyData({});
     m = this._dtoFilter(this._datesToString(m), 'detail');
-    return R({ Succeed: true, Data: m });
+    return R({ succeed: true, data: m });
   }
 
   // ─── POST /cdp/customer/save ──────────────────────────────────
   async save(req, reply) {
     const params = this._params(req);
-    if (!params.model) return R({ Succeed: false, Message: '传入参数有误' });
+    if (!params.model) return R({ succeed: false, msg: '传入参数有误' });
 
     const result = await this.myService.Transaction(async (db) => {
       return this._saveImpl(params, db, params.hasOwnProperty('isSaveDetailed') ? params.isSaveDetailed : true);
@@ -85,17 +85,17 @@ class CustomerService extends BaseService {
         addOne: 1,
         db,
       });
-      if (!m.no) return R({ Succeed: false, Message: '生成流水号失败' });
+      if (!m.no) return R({ succeed: false, msg: '生成流水号失败' });
     }
 
     m.id = await this.myService.AddOrUpdate({ model: m, userId: params.userId, isSaveDetailed, db });
     let newModel = await this.myService.Get({ id: m.id, isLoadDetailed: true, userId: params.userId, db });
     if (newModel) newModel = this._dtoFilter(this._datesToString(newModel), 'detail');
     return R({
-      Succeed: !this.myService.IDIsEmpty(m.id),
-      Message: !this.myService.IDIsEmpty(m.id) ? '保存成功' : '保存失败',
-      Data: m.id,
-      Data1: newModel,
+      succeed: !this.myService.IDIsEmpty(m.id),
+      msg: !this.myService.IDIsEmpty(m.id) ? '保存成功' : '保存失败',
+      data: m.id,
+      data1: newModel,
     });
   }
 
@@ -109,7 +109,7 @@ class CustomerService extends BaseService {
       if (params.id && !this.myService.IDIsEmpty(params.id)) {
         return this.myService.Delete({ id: params.id, userId: params.userId, db });
       }
-      return R({ Succeed: false, Message: '传入参数有误' });
+      return R({ succeed: false, msg: '传入参数有误' });
     });
     return result;
   }
@@ -121,35 +121,35 @@ class CustomerService extends BaseService {
     const strOrder = this.myService.getOrderString(params.sortObj);
     const isLoadDetailed = params.isLoadDetailed != null ? params.isLoadDetailed : false;
 
-    const data = R({ Succeed: true, Data: {} });
+    const data = R({ succeed: true, data: {} });
 
     if (params.isAllData) {
       const MAX_ALL = 5000;
-      data.Data.Items = await this.myService.GetListForPageIndex({
+      data.data.Items = await this.myService.GetListForPageIndex({
         strWhere: search.sql, strParams: search.params,
         strOrder, pageIndex: 0, onePageCount: MAX_ALL, isLoadDetailed, userId: params.userId,
       });
-      data.Data.DataTotal = data.Data.Items.length;
+      data.data.DataTotal = data.data.Items.length;
     } else {
-      data.Data.PageIndex = params.PageIndex ? parseInt(params.PageIndex) : 1;
-      data.Data.OnePageCount = params.onePageCount ? parseInt(params.onePageCount) : this.myService.myConfig.dbConfig.onePageCount;
+      data.data.PageIndex = params.PageIndex ? parseInt(params.PageIndex) : 1;
+      data.data.OnePageCount = params.onePageCount ? parseInt(params.onePageCount) : this.myService.myConfig.dbConfig.onePageCount;
 
       const cachedTotal = params.DataTotal && params.DataTotal > 0 ? parseInt(params.DataTotal) : 0;
       const [items, total] = await Promise.all([
         this.myService.GetListForPageIndex({
           strWhere: search.sql, strParams: search.params,
-          strOrder, pageIndex: data.Data.PageIndex - 1,
-          onePageCount: data.Data.OnePageCount, isLoadDetailed, userId: params.userId,
+          strOrder, pageIndex: data.data.PageIndex - 1,
+          onePageCount: data.data.OnePageCount, isLoadDetailed, userId: params.userId,
         }),
         cachedTotal ? Promise.resolve(cachedTotal) : this.myService.Count({
           strWhere: search.sql, strParams: search.params, userId: params.userId,
         }),
       ]);
-      data.Data.Items = items;
-      data.Data.DataTotal = total;
+      data.data.Items = items;
+      data.data.DataTotal = total;
     }
 
-    data.Data.Items = this._dtoFilter(data.Data.Items, 'list');
+    data.data.Items = this._dtoFilter(data.data.Items, 'list');
     return this._datesToString(data);
   }
 
@@ -164,9 +164,9 @@ class CustomerService extends BaseService {
 
     if (!publicRuntime) {
       return R({
-        Succeed: true,
-        Message: 'public 模块未注册，已自动降级',
-        Data: {
+        succeed: true,
+        msg: 'public 模块未注册，已自动降级',
+        data: {
           serviceFound: false,
           fallback: true,
           availableServices: serviceRegistry.list(),
@@ -182,9 +182,9 @@ class CustomerService extends BaseService {
       });
 
       return R({
-        Succeed: true,
-        Message: '调用 public.runtime 成功',
-        Data: {
+        succeed: true,
+        msg: '调用 public.runtime 成功',
+        data: {
           serviceFound: true,
           fallback: false,
           remoteData,
@@ -194,9 +194,9 @@ class CustomerService extends BaseService {
     } catch (err) {
       req.log.warn({ err }, 'public.runtime call failed');
       return R({
-        Succeed: true,
-        Message: 'public 模块调用失败，已自动降级',
-        Data: {
+        succeed: true,
+        msg: 'public 模块调用失败，已自动降级',
+        data: {
           serviceFound: true,
           fallback: true,
           error: err.message,
@@ -245,14 +245,14 @@ class CustomerService extends BaseService {
     const factory = this.factory;
 
     const m = await this.myService.Get({ id: params.id });
-    if (!m) return R({ Succeed: false, Message: '获取客户失败' });
-    if (m.status != params.prevStatus) return R({ Succeed: false, Message: '流程数据已更新，请刷新后重试' });
-    if (params.actionId == null) return R({ Succeed: false, Message: '请选择要执行的操作' });
+    if (!m) return R({ succeed: false, msg: '获取客户失败' });
+    if (m.status != params.prevStatus) return R({ succeed: false, msg: '流程数据已更新，请刷新后重试' });
+    if (params.actionId == null) return R({ succeed: false, msg: '请选择要执行的操作' });
 
     const statusList = await factory.biz_customer_statusRepo.GetList({ ids: [m.status, params.actionId] });
     const preStatus = statusList.find(e => e.id == params.prevStatus);
     if (preStatus && !preStatus.next.includes(params.actionId)) {
-      return R({ Succeed: false, Message: '流程参数错误，请联系管理员' });
+      return R({ succeed: false, msg: '流程参数错误，请联系管理员' });
     }
 
     const nextStatus = statusList.find(e => e.id == params.actionId);
@@ -260,11 +260,11 @@ class CustomerService extends BaseService {
 
     // 放款状态 → 自动计算佣金
     if (nextStatus && nextStatus.name === 'disbursement') {
-      if (!m.real_loan_amount) return R({ Succeed: false, Message: '实际贷款金额未设置无法放款' });
+      if (!m.real_loan_amount) return R({ succeed: false, msg: '实际贷款金额未设置无法放款' });
 
       const product = await factory.biz_productRepo.Get({ id: m.product_id });
-      if (!product) return R({ Succeed: false, Message: '获取产品信息失败' });
-      if (!product.commission_rate) return R({ Succeed: false, Message: '产品未配置佣金比例' });
+      if (!product) return R({ succeed: false, msg: '获取产品信息失败' });
+      if (!product.commission_rate) return R({ succeed: false, msg: '产品未配置佣金比例' });
 
       // 业务员佣金
       const sales = await factory.gb_userRepo.Get({ id: m.user_id });
@@ -334,13 +334,13 @@ class CustomerService extends BaseService {
 
     const result = await this.myService.Transaction(async (db) => {
       m.id = await this.myService.AddOrUpdate({ model: m, db });
-      if (!m.id) return R({ Succeed: false, Message: '状态改变失败' });
+      if (!m.id) return R({ succeed: false, msg: '状态改变失败' });
 
       if (commissions.length) {
         const cr = await factory.biz_commission_recordRepo.AddOrUpdateList({ models: commissions, db });
-        if (!cr.Succeed) return R({ Succeed: false, Message: '佣金保存失败' });
+        if (!cr.succeed) return R({ succeed: false, msg: '佣金保存失败' });
       }
-      return R({ Succeed: true, Message: '操作成功' });
+      return R({ succeed: true, msg: '操作成功' });
     });
     return result;
   }

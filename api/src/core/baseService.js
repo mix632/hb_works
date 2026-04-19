@@ -101,40 +101,40 @@ class BaseService {
     }
     if (!model) model = this.myModel.CopyData({});
     model = this._datesToString(model);
-    return R({ Succeed: true, Data: this._dtoFilter(model, 'detail') });
+    return R({ succeed: true, Data: this._dtoFilter(model, 'detail') });
   }
 
   async save(req, reply) {
     const params = this._params(req);
-    if (!params.model) return R({ Succeed: false, Message: '传入参数有误' });
+    if (!params.model) return R({ succeed: false, msg: '传入参数有误' });
     if (this.dto?.save) params.model = this._pickFields(params.model, this.dto.save);
 
     const result = await this.myService.Transaction(async (db) => {
       // 钩子: beforeSave
       if (this.beforeSave) {
         const check = await this.beforeSave(params, db);
-        if (check && !check.Succeed) return check;
+        if (check && !check.succeed) return check;
       }
 
       const model = params.model;
       const isSaveDetailed = params.hasOwnProperty('isSaveDetailed') ? params.isSaveDetailed : true;
       model.id = await this.myService.AddOrUpdate({ model, userId: params.userId, isSaveDetailed, db });
 
-      if (this.myService.IDIsEmpty(model.id)) return R({ Succeed: false, Message: '保存失败' });
+      if (this.myService.IDIsEmpty(model.id)) return R({ succeed: false, msg: '保存失败' });
 
       // 钩子: afterSave
       if (this.afterSave) {
         const after = await this.afterSave(model, params, db);
-        if (after && !after.Succeed) return after;
+        if (after && !after.succeed) return after;
       }
 
       let newModel = await this.myService.Get({ id: model.id, isLoadDetailed: true, userId: params.userId, db });
       if (newModel) newModel = this._dtoFilter(this._datesToString(newModel), 'detail');
       return R({
-        Succeed: true,
-        Message: '保存成功',
-        Data: model.id,
-        Data1: newModel,
+        succeed: true,
+        msg: '保存成功',
+        data: model.id,
+        data1: newModel,
       });
     });
     return result;
@@ -145,7 +145,7 @@ class BaseService {
     const result = await this.myService.Transaction(async (db) => {
       if (params.ids) return this.myService.Delete({ ids: params.ids, userId: params.userId, db });
       if (params.id && !this.myService.IDIsEmpty(params.id)) return this.myService.Delete({ id: params.id, userId: params.userId, db });
-      return R({ Succeed: false, Message: '传入参数有误' });
+      return R({ succeed: false, msg: '传入参数有误' });
     });
     return result;
   }
@@ -156,35 +156,35 @@ class BaseService {
     const strOrder = this.myService.getOrderString(params.sortObj);
     const isLoadDetailed = params.isLoadDetailed != null ? params.isLoadDetailed : true;
 
-    const data = R({ Succeed: true, Data: {} });
+    const data = R({ succeed: true, data: {} });
 
     if (params.isAllData) {
       const MAX_ALL = 5000;
-      data.Data.Items = await this.myService.GetListForPageIndex({
+      data.data.Items = await this.myService.GetListForPageIndex({
         strWhere: search.sql, strParams: search.params,
         strOrder, pageIndex: 0, onePageCount: MAX_ALL, isLoadDetailed, userId: params.userId,
       });
-      data.Data.DataTotal = data.Data.Items.length;
+      data.data.DataTotal = data.data.Items.length;
     } else {
-      data.Data.PageIndex = params.PageIndex ? parseInt(params.PageIndex) : 1;
-      data.Data.OnePageCount = params.onePageCount ? parseInt(params.onePageCount) : this.myService.myConfig.dbConfig.onePageCount;
+      data.data.PageIndex = params.PageIndex ? parseInt(params.PageIndex) : 1;
+      data.data.OnePageCount = params.onePageCount ? parseInt(params.onePageCount) : this.myService.myConfig.dbConfig.onePageCount;
 
       const cachedTotal = params.DataTotal && params.DataTotal > 0 ? parseInt(params.DataTotal) : 0;
       const [items, total] = await Promise.all([
         this.myService.GetListForPageIndex({
           strWhere: search.sql, strParams: search.params,
-          strOrder, pageIndex: data.Data.PageIndex - 1,
-          onePageCount: data.Data.OnePageCount, isLoadDetailed, userId: params.userId,
+          strOrder, pageIndex: data.data.PageIndex - 1,
+          onePageCount: data.data.OnePageCount, isLoadDetailed, userId: params.userId,
         }),
         cachedTotal ? Promise.resolve(cachedTotal) : this.myService.Count({
           strWhere: search.sql, strParams: search.params, userId: params.userId,
         }),
       ]);
-      data.Data.Items = items;
-      data.Data.DataTotal = total;
+      data.data.Items = items;
+      data.data.DataTotal = total;
     }
 
-    data.Data.Items = this._dtoFilter(data.Data.Items, 'list');
+    data.data.Items = this._dtoFilter(data.data.Items, 'list');
     return this._datesToString(data);
   }
 
@@ -232,7 +232,7 @@ class BaseService {
       dataValueName: params.dataValueName, idName: params.idName,
       valueName: params.valueName, userId: params.userId,
     });
-    return R({ Succeed: true });
+    return R({ succeed: true });
   }
 
   _datesToString(obj) {
