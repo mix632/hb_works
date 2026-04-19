@@ -8,7 +8,7 @@
  * ─── 接口一览 ───
  *
  * 2) GET /naviga/home/page-config — 页面头区配置（数据写在 pageConfig 方法内，便于改库前直接改代码）
- *    返回 Data：{ menus: MenuItem[], allNavPopover: PopoverItem[], searchEngines: SearchEngineItem[] }
+ *    返回 Data：{ menus, allNavPopover, searchEngines, hotSearchTags }
  *
  *    MenuItem（menus 为有序数组）：
  *    - style: 'dropdown' — 有子菜单；children 每项含 label, icon, bg, url（点击跳转）
@@ -23,6 +23,9 @@
  *    - url：跳转基址（不含查询串，可含已有 query，如 ?ie=utf-8）
  *    - queryKey：查询参数名（如 wd、q）；与 url 拼成 ?queryKey=encodeURIComponent(关键词)
  *    - buttonText?：搜索按钮文案；缺省时由前端按 name 推断
+ *
+ *    hotSearchTags：Hero 热搜榜标签，每项 { text, hot?, highlight?, url }
+ *    - url：点击后新窗口打开（H5）；小程序端复制链接或 web-view 策略由前端处理
  *
  *
  * 实现数据暂写在本文件；后续接库时替换为查询结果。
@@ -182,6 +185,21 @@ class NavigaHomeService extends BaseService {
         },
       ];
 
+      /** Hero 热搜榜：点击 url 新窗口打开 */
+      const hotSearchTags = [
+        {
+          text: '最新AI课程',
+          hot: true,
+          highlight: true,
+          url: 'https://www.uisdc.com/aigc/',
+        },
+        { text: 'OpenClaw', hot: true, url: 'https://www.google.com/search?q=OpenClaw' },
+        { text: 'Nano Banana', hot: true, url: 'https://www.google.com/search?q=Nano+Banana' },
+        { text: '即梦', hot: false, url: 'https://jimeng.jianying.com/' },
+        { text: 'AIGC', hot: false, url: 'https://www.uisdc.com/aigc/' },
+        { text: 'Figma', hot: false, url: 'https://www.figma.com/' },
+      ];
+
       /** 侧栏「全部网址导航」3×3，每项可跳转 */
       const allNavPopover = [ 
         { label: '优设导航', bg: '#22c55e', icon: '导', url: 'https://hao.uisdc.com/' },
@@ -195,7 +213,7 @@ class NavigaHomeService extends BaseService {
         { label: '更多导航', bg: '#64748b', icon: '···', url: 'https://hao.uisdc.com/' },
       ];
 
-      const data = { menus, allNavPopover, searchEngines };
+      const data = { menus, allNavPopover, searchEngines, hotSearchTags };
       return R({ Succeed: true, Message: '', Data: data });
     } catch (err) {
       return R({ Succeed: false, Message: err.message || '加载页面配置失败', Data: null });
