@@ -183,7 +183,7 @@ class NavigaHomeService extends BaseService {
       ];
 
       /** 侧栏「全部网址导航」3×3，每项可跳转 */
-      const allNavPopover = [
+      const allNavPopover = [ 
         { label: '优设导航', bg: '#22c55e', icon: '导', url: 'https://hao.uisdc.com/' },
         { label: 'AI导航', bg: '#3b82f6', icon: 'AI', url: 'https://hao.uisdc.com/ai/' },
         { label: '字体导航', bg: '#f97316', icon: 'Aa', url: 'https://hao.uisdc.com/font/' },
