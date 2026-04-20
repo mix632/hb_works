@@ -22,7 +22,14 @@ async function start() {
   });
 
   // ─── 全局插件 ────────────────────────────────────────────────
-  await app.register(require('@fastify/cors'), { origin: true, credentials: true });
+  await app.register(require('@fastify/cors'), {
+    // 任意来源：自动回显请求 Origin（兼容 credentials）
+    origin: true,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    maxAge: 86400,
+  });
   await app.register(require('@fastify/formbody'));
   await app.register(require('@fastify/rate-limit'), {
     max: 200,
