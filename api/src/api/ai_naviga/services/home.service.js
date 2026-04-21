@@ -96,6 +96,30 @@ class HomeService extends BaseService {
     data.data.Items = this._dtoFilter(data.data.Items, 'list');
     return this._datesToString(data);
   }
+
+  async delete(req, reply) {
+    const params = this._params(req);
+    const isCascade = String(params.cascade || '') === 'true' || params.cascade === true || params.cascade === 1 || params.cascade === '1';
+    const ids = Array.isArray(params.ids) && params.ids.length
+      ? params.ids.map((x) => parseInt(x, 10)).filter((x) => Number.isFinite(x) && x > 0)
+      : (params.id ? [parseInt(params.id, 10)] : []);
+
+    if (!ids.length) return R({ succeed: false, msg: '传入参数有误' });
+
+    return this.myService.Transaction(async (db) => {
+      if (isCascade) {
+        await this.myService.Delete({
+          strWhere: `${this.myService.tableName}.parent_id in (:parentIds)`,
+          strParams: { parentIds: ids },
+          forceExecute: true,
+          userId: params.userId,
+          db,
+        });
+      }
+      return this.myService.Delete({ ids, userId: params.userId, db });
+    });
+  }
+
   async copy(req, reply) {
     const params = this._params(req);
     var model = await this.myService.Get({ id: params.id, isLoadDetailed: true });

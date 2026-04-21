@@ -88,6 +88,7 @@ class BizHomeRepo extends Dal {
     if (searchModel.id) w.eq('biz_home.id', searchModel.id);
     if (searchModel.ids) w.in('biz_home.id', searchModel.ids);
     if (searchModel.type) w.eq('biz_home.type', searchModel.type);
+    if (searchModel.parent_id) w.eq('biz_home.parent_id', searchModel.parent_id);
     return w.build();
   }
 }
