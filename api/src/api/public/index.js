@@ -3,14 +3,20 @@
 const path = require('path');
 const fs = require('fs');
 const dictCache = require('../../core/dictCache');
+const serviceRegistry = require('../../core/serviceRegistry');
 // const userStatusRepo = require('./dal/gb_user_status.repo');
 
 /**
  * public 模块 — Fastify 插件
  * 自动注册所有 service 路由 + 字典缓存
+ * 同时向 serviceRegistry 暴露可供其他模块跨模块调用的 DAL / Service
  */
 async function publicModule(app) {
   // dictCache.register('gb_user_status', userStatusRepo);
+
+  // ─── 跨模块暴露：其他模块通过 serviceRegistry.get('public.xxx') 获取 ───
+  serviceRegistry.register('public.system_fileRepo', require('./dal/system_file.repo'));
+  serviceRegistry.register('public.system_file_typeRepo', require('./dal/system_file_type.repo'));
 
   const servicesDir = path.join(__dirname, 'services');
   const files = fs.readdirSync(servicesDir).filter(f => f.endsWith('.service.js')).sort();
