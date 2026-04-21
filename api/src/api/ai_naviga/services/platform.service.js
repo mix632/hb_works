@@ -23,7 +23,7 @@ class PlatformService extends BaseService {
   registerRoutes(app) {
     const p = this.prefix;
     app.get(`${p}/get`, (req, reply) => this.get(req, reply));
-    app.post(`${p}/delete`, (req, reply) => this.delete(req, reply));
+    app.delete(`${p}/delete`, (req, reply) => this.delete(req, reply));
     app.get(`${p}/getlist`, (req, reply) => this.getList(req, reply));
     app.post(`${p}/save`, (req, reply) => this.save(req, reply));
     app.post(`${p}/swap`, (req, reply) => this.swap(req, reply));
