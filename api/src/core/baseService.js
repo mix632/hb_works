@@ -107,43 +107,53 @@ class BaseService {
   async save(req, reply) {
     const params = this._params(req);
     if (!params.model) return R({ succeed: false, msg: '传入参数有误' });
-    if (this.dto?.save) params.model = this._pickFields(params.model, this.dto.save);
 
     const result = await this.myService.Transaction(async (db) => {
-      // 钩子: beforeSave
-      if (this.beforeSave) {
-        const check = await this.beforeSave(params, db);
-        if (check && !check.succeed) return check;
-      }
-
-      const model = params.model;
-      const isSaveDetailed = params.hasOwnProperty('isSaveDetailed') ? params.isSaveDetailed : true;
-      model.id = await this.myService.AddOrUpdate({ model, userId: params.userId, isSaveDetailed, db });
-
-      if (this.myService.IDIsEmpty(model.id)) return R({ succeed: false, msg: '保存失败' });
-
-      // 钩子: afterSave
-      if (this.afterSave) {
-        const after = await this.afterSave(model, params, db);
-        if (after && !after.succeed) return after;
-      }
-
-      let newModel = await this.myService.Get({ id: model.id, isLoadDetailed: true, userId: params.userId, db });
-      if (newModel) newModel = this._dtoFilter(this._datesToString(newModel), 'detail');
-      return R({
-        succeed: true,
-        msg: '保存成功',
-        data: model.id,
-        data1: newModel,
-      });
+      return this._saveImpl(params, db, params.hasOwnProperty('isSaveDetailed') ? params.isSaveDetailed : true);
     });
     return result;
   }
 
+  // async save(req, reply) {
+  //   const params = this._params(req);
+  //   if (!params.model) return R({ succeed: false, msg: '传入参数有误' });
+  //   if (this.dto?.save) params.model = this._pickFields(params.model, this.dto.save);
+
+  //   const result = await this.myService.Transaction(async (db) => {
+  //     // 钩子: beforeSave
+  //     if (this.beforeSave) {
+  //       const check = await this.beforeSave(params, db);
+  //       if (check && !check.succeed) return check;
+  //     }
+
+  //     const model = params.model;
+  //     const isSaveDetailed = params.hasOwnProperty('isSaveDetailed') ? params.isSaveDetailed : true;
+  //     model.id = await this.myService.AddOrUpdate({ model, userId: params.userId, isSaveDetailed, db });
+
+  //     if (this.myService.IDIsEmpty(model.id)) return R({ succeed: false, msg: '保存失败' });
+
+  //     // 钩子: afterSave
+  //     if (this.afterSave) {
+  //       const after = await this.afterSave(model, params, db);
+  //       if (after && !after.succeed) return after;
+  //     }
+
+  //     let newModel = await this.myService.Get({ id: model.id, isLoadDetailed: true, userId: params.userId, db });
+  //     if (newModel) newModel = this._dtoFilter(this._datesToString(newModel), 'detail');
+  //     return R({
+  //       succeed: true,
+  //       msg: '保存成功',
+  //       data: model.id,
+  //       data1: newModel,
+  //     });
+  //   });
+  //   return result;
+  // }
+
   async delete(req, reply) {
     const params = this._params(req);
     const result = await this.myService.Transaction(async (db) => {
-      if (params.ids) return this.myService.Delete({ ids: params.ids, userId: params.userId, db });
+      if (params.ids && params.ids.length) return this.myService.Delete({ ids: params.ids, userId: params.userId, db });
       if (params.id && !this.myService.IDIsEmpty(params.id)) return this.myService.Delete({ id: params.id, userId: params.userId, db });
       return R({ succeed: false, msg: '传入参数有误' });
     });
@@ -244,6 +254,11 @@ class BaseService {
       else if (Array.isArray(val)) val.forEach(item => { if (typeof item === 'object') this._datesToString(item); });
     }
     return obj;
+  }
+
+  async swap(req, reply) {
+    const params = this._params(req);
+    return await this.myService.swap({ models: params.newArray, userId: params.userId });
   }
 }
 

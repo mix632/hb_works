@@ -43,16 +43,6 @@ class PlatformService extends BaseService {
     return R({ succeed: true, data: m });
   }
 
-  async save(req, reply) {
-    const params = this._params(req);
-    if (!params.model) return R({ succeed: false, msg: '传入参数有误' });
-
-    const result = await this.myService.Transaction(async (db) => {
-      return this._saveImpl(params, db, params.hasOwnProperty('isSaveDetailed') ? params.isSaveDetailed : true);
-    });
-    return result;
-  }
-
   async _saveImpl(params, db, isSaveDetailed = false) {
     const m = this._dtoFilter(params.model, 'save');
     const isAdd = this.myService.IDIsEmpty(m.id);
@@ -66,58 +56,6 @@ class PlatformService extends BaseService {
       data: m.id,
       data1: newModel,
     });
-  }
-
-  async delete(req, reply) {
-    const params = this._params(req);
-    const result = await this.myService.Transaction(async (db) => {
-      if (params.ids && params.ids.length) {
-        return this.myService.Delete({ ids: params.ids, userId: params.userId, db });
-      }
-      if (params.id && !this.myService.IDIsEmpty(params.id)) {
-        return this.myService.Delete({ id: params.id, userId: params.userId, db });
-      }
-      return R({ succeed: false, msg: '传入参数有误' });
-    });
-    return result;
-  }
-
-  async getList(req, reply) {
-    const params = this._params(req);
-    const search = await this.myService.GetSearchSQL({ searchModel: params, userId: params.userId });
-    const strOrder = this.myService.getOrderString(params.sortObj);
-    const isLoadDetailed = params.isLoadDetailed != null ? params.isLoadDetailed : false;
-
-    const data = R({ succeed: true, data: {} });
-
-    if (params.isAllData) {
-      const MAX_ALL = 5000;
-      data.data.Items = await this.myService.GetListForPageIndex({
-        strWhere: search.sql, strParams: search.params,
-        strOrder, pageIndex: 0, onePageCount: MAX_ALL, isLoadDetailed, userId: params.userId,
-      });
-      data.data.DataTotal = data.data.Items.length;
-    } else {
-      data.data.PageIndex = params.PageIndex ? parseInt(params.PageIndex) : 1;
-      data.data.OnePageCount = params.onePageCount ? parseInt(params.onePageCount) : this.myService.myConfig.dbConfig.onePageCount;
-
-      const cachedTotal = params.DataTotal && params.DataTotal > 0 ? parseInt(params.DataTotal) : 0;
-      const [items, total] = await Promise.all([
-        this.myService.GetListForPageIndex({
-          strWhere: search.sql, strParams: search.params,
-          strOrder, pageIndex: data.data.PageIndex - 1,
-          onePageCount: data.data.OnePageCount, isLoadDetailed, userId: params.userId,
-        }),
-        cachedTotal ? Promise.resolve(cachedTotal) : this.myService.Count({
-          strWhere: search.sql, strParams: search.params, userId: params.userId,
-        }),
-      ]);
-      data.data.Items = items;
-      data.data.DataTotal = total;
-    }
-
-    data.data.Items = this._dtoFilter(data.data.Items, 'list');
-    return this._datesToString(data);
   }
 }
 
