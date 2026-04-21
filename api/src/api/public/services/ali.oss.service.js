@@ -3,11 +3,10 @@
 const { dateFormat, nowStr } = require('../../../utils/dateUtil');
 const BaseService = require('../../../core/baseService');
 const { R } = require('../../../core/errors');
-const util = require('../../../utils');
+const path = require('path');
 const config = require('../../../core/serverConfig');
-const serviceRegistry = require('../../../core/serviceRegistry');
-const { md5Hex } = require('./ruoyiUtil');
-const { koaBody } = require('koa-body'); 
+const { randomUUID } = require('crypto');
+const fs = require('fs-extra');
 
 class AliOssService extends BaseService {
   constructor() {
@@ -21,7 +20,7 @@ class AliOssService extends BaseService {
   // ─── 路由：/public/user/*；若依兼容：/ruoyi/system/user*、POST /ruoyi/resetPwd ──
   registerRoutes(app) {
     const p = this.prefix;
-    app.post(`${p}/upload`, koaBody({ multipart: true }), (req, reply) => this.upload(req, reply));
+    app.post(`${p}/upload`, (req, reply) => this.upload(req, reply));
     app.get(`${p}/exists`, (req, reply) => this.exists(req, reply));
     app.put(`${p}/put`, (req, reply) => this.put(req, reply));
 
@@ -97,23 +96,31 @@ class AliOssService extends BaseService {
 
   /** 若依：管理员重置用户密码 — PUT|POST /system/user/resetPwd */
   async upload(req, reply) {
-    return 10
-    console.log(1)
     try {
-      const raw = ctx && ctx.request && ctx.request.files && ctx.request.files.file;
-      if (!raw) {
-        return R({ succeed: false, msg: '未发现文件' });
-      }
-      const files = Array.isArray(raw) ? raw : [raw];
+      let uploadPath = '';
       const results = [];
-      for (const file of files) {
-        const buffer = await fs.readFile(file.filepath);
-        const original = file.originalFilename || '';
+
+      for await (const part of req.parts()) {
+        if (part.type === 'field') {
+          if (part.fieldname === 'path' && part.value != null) {
+            uploadPath = String(part.value).trim();
+          }
+          continue;
+        }
+        if (part.type !== 'file') continue;
+
+        const original = part.filename || '';
         const ext = path.extname(original) || '';
-        const filepath = `${params.path ? `${params.path}/` : ''}${UUID.v4()}${ext}`;
-        const item = await this.putBufferToOss(buffer, filepath, original);
+        const objectKey = `${uploadPath ? `${uploadPath}/` : ''}${randomUUID()}${ext}`;
+        const buffer = await part.toBuffer();
+        const item = await this.putBufferToOss(buffer, objectKey, original);
         results.push(item);
       }
+
+      if (!results.length) {
+        return R({ succeed: false, msg: '未发现文件' });
+      }
+
       return R({ succeed: true, data: results });
     } catch (error) {
       return R({ succeed: false, msg: error.message });

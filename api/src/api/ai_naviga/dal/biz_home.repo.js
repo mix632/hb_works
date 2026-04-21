@@ -45,18 +45,32 @@ class BizHomeRepo extends Dal {
       });
       for (const i of datas) {
         i.files = files.filter((e) => e.TargetID == i.id);
+        i.files = i.files.map(e => {
+          return {
+            name: e.FileName,
+            path: e.FileMd5,
+            ...e,
+          }
+        })
       }
     }
   }
 
   async AddOrUpdate({ model: m, isSaveDetailed = false, userId, db = null }) {
-    m.image = (m.files && m.files.length) ? JSON.stringify(m.files.map(e => e.FileMd5)) : '[]';
+    m.image = (m.files && m.files.length) ? JSON.stringify(m.files.map(e => e.path)) : '[]';
     m.id = await super.AddOrUpdate({ model: m, isSaveDetailed, userId, db });
     if (!isSaveDetailed || !m.id) {
       return m.id;
     }
 
     if (m.files?.length) {
+      m.files = m.files.map(e => {
+        return {
+          FileName: e.FileName || e.name,
+          FileMd5: e.FileMd5 || e.path,
+          ...e,
+        }
+      })
       for (const i of m.files) {
         i.TargetID = m.id;
       }

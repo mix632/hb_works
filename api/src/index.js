@@ -31,6 +31,12 @@ async function start() {
     maxAge: 86400,
   });
   await app.register(require('@fastify/formbody'));
+  await app.register(require('@fastify/multipart'), {
+    limits: {
+      fileSize: 50 * 1024 * 1024,
+      files: 10,
+    },
+  });
   await app.register(require('@fastify/rate-limit'), {
     max: 200,
     timeWindow: '1 minute',

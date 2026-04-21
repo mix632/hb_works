@@ -8,7 +8,7 @@
  */
 module.exports = {
   list: [
-    'id', 'type', 'title', 'descript', 'url', 'icon', 'show_type', 'is_more', 'is_hot', 'sort_index', 
+    'id', 'type', 'title', 'descript', 'url', 'icon', 'show_type', 'is_more', 'is_hot', 'sort_index', 'files' 
   ],
   detail: [
     'id', 'type', 'parent_id', 'title', 'descript', 'url', 'icon', 'image', 'show_type', 'is_more', 'is_hot', 'html', 'data', 'platform', 'sort_index', 'created_at', 'updated_at', 'deleted', 'files' 

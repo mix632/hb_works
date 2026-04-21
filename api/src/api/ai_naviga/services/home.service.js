@@ -63,7 +63,7 @@ class HomeService extends BaseService {
     const params = this._params(req);
     const search = await this.myService.GetSearchSQL({ searchModel: params, userId: params.userId });
     const strOrder = this.myService.getOrderString(params.sortObj);
-    const isLoadDetailed = params.isLoadDetailed != null ? params.isLoadDetailed : false;
+    const isLoadDetailed = params.isLoadDetailed != null ? params.isLoadDetailed : true;
 
     const data = R({ succeed: true, data: {} });
 
