@@ -12,7 +12,7 @@ class BizHomeRepo extends Dal {
     super();
     this.modelType = model;
     this.tableName = 'biz_home';
-    this.defalutOrder = 'biz_home.id desc';
+    this.defalutOrder = 'biz_home.sort_index asc';
     this.tableTitle = '页面配置';
     this.primaryKey = 'id';
     this.deleteKey = 'deleted';
@@ -22,7 +22,7 @@ class BizHomeRepo extends Dal {
     this.updateUserId = '';
     this.deleteDate = '';
     this.deleteUserId = '';
-    this.sortIndex = '';
+    this.sortIndex = 'sort_index';
     this.emptyPrimaryValue = 0;
     this.baseSql = `
       select biz_home.*
@@ -38,15 +38,37 @@ class BizHomeRepo extends Dal {
 
     const ids = datas.map(e => this.GetModelID({ model: e }));
     if (ids.length) {
+      const files = await factory.system_fileRepo.GetFilesForName({
+        fileType: 'biz_home',
+        TargetIDs: ids,
+        userId,
+        db,
+      });
+      for (const i of datas) {
+        i.files = files.filter((e) => e.TargetID == i.id);
+      }
     }
   }
 
   async AddOrUpdate({ model: m, isSaveDetailed = false, userId, db = null }) {
+    m.image = (m.files && m.files.length) ? JSON.stringify(m.files.map(e => e.FileMd5)) : '[]';
     m.id = await super.AddOrUpdate({ model: m, isSaveDetailed, userId, db });
     if (!isSaveDetailed || !m.id) {
       return m.id;
     }
 
+    if (m.files?.length) {
+      for (const i of m.files) {
+        i.TargetID = m.id;
+      }
+    }
+    await factory.system_fileRepo.AddOrUpdateMulti({
+      files: m.files,
+      name: 'biz_home',
+      tableId: m.id,
+      userId,
+      db,
+    });
     return m.id;
   }
   /**
@@ -66,6 +88,7 @@ class BizHomeRepo extends Dal {
     }
     if (searchModel.id) w.eq('biz_home.id', searchModel.id);
     if (searchModel.ids) w.in('biz_home.id', searchModel.ids);
+    if (searchModel.type) w.eq('biz_home.type', searchModel.type);
     return w.build();
   }
 }

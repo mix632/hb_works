@@ -26,6 +26,8 @@ class HomeService extends BaseService {
     app.delete(`${p}/delete`, (req, reply) => this.delete(req, reply));
     app.get(`${p}/getlist`, (req, reply) => this.getList(req, reply));
     app.post(`${p}/save`, (req, reply) => this.save(req, reply));
+    app.post(`${p}/swap`, (req, reply) => this.swap(req, reply));
+    app.post(`${p}/copy`, (req, reply) => this.copy(req, reply));
   }
 
   async get(req, reply) {
@@ -93,6 +95,28 @@ class HomeService extends BaseService {
 
     data.data.Items = this._dtoFilter(data.data.Items, 'list');
     return this._datesToString(data);
+  }
+  async copy(req, reply) {
+    const params = this._params(req);
+    var model = await this.myService.Get({ id: params.id, isLoadDetailed: true });
+    if (!model) {
+      return util.BaseRetrun({ succeed: false, msg: '未能找到复制源数据' });
+    }
+    model.files = [];
+    model.sort_index = 0;
+    model.id = 0;
+    return await this.myService.Transaction(async (db) => {
+      let params2 = {
+        model: model,
+        userId: params.userId,
+        spId: params.spId,
+      };
+      let succeed = await this.saveImpl(params2, db, true);
+      if (!succeed.succeed) {
+        return succeed;
+      }
+      return util.BaseRetrun({ succeed: succeed.succeed, data: succeed.data });
+    });
   }
 }
 

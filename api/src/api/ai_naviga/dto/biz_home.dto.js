@@ -8,12 +8,12 @@
  */
 module.exports = {
   list: [
-    'id', 'title', 'descript', 'url', 'icon', 'is_more', 'sort_index', 
+    'id', 'type', 'title', 'descript', 'url', 'icon', 'show_type', 'is_more', 'is_hot', 'sort_index', 
   ],
   detail: [
-    'id', 'parent_id', 'title', 'descript', 'url', 'icon', 'image', 'is_more', 'html', 'data', 'platform', 'sort_index', 'created_at', 'updated_at', 'deleted', 
+    'id', 'type', 'parent_id', 'title', 'descript', 'url', 'icon', 'image', 'show_type', 'is_more', 'is_hot', 'html', 'data', 'platform', 'sort_index', 'created_at', 'updated_at', 'deleted', 
   ],
   save: [
-    'id', 'parent_id', 'title', 'descript', 'url', 'icon', 'image', 'is_more', 'html', 'data', 'platform', 'sort_index', 'created_at', 'updated_at', 'deleted', 
+    'id', 'type', 'parent_id', 'title', 'descript', 'url', 'icon', 'image', 'show_type', 'is_more', 'is_hot', 'html', 'data', 'platform', 'sort_index', 'created_at', 'updated_at', 'deleted', 
   ],
 };
