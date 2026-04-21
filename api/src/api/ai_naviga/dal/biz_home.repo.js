@@ -24,8 +24,10 @@ class BizHomeRepo extends Dal {
     this.sortIndex = 'sort_index';
     this.emptyPrimaryValue = 0;
     this.baseSql = `
-      select biz_home.*
+      select biz_home.*,
+             _home_show_type.title as show_type_title
       from biz_home biz_home
+      left join biz_home_show_type _home_show_type on _home_show_type.id = biz_home.show_type
       where biz_home.id > 0 {0} {1}
       order by {2}
     `.replace(/\n\s+/g, ' ').trim();
@@ -95,15 +97,26 @@ class BizHomeRepo extends Dal {
   GetSearchSQL({ searchModel, userId }) {
     const w = this.safeWhere();
     if (searchModel.Keyword && searchModel.Keyword.trim()) {
-      w.w('biz_home.title', searchModel.Keyword, 'like', 'or');
-      w.w('biz_home.descript', searchModel.Keyword, 'like', 'or');
-      w.w('biz_home.url', searchModel.Keyword, 'like', 'or');
+      w.w('biz_home.title', 'like', searchModel.Keyword, 'or');
+      w.w('biz_home.descript', 'like', searchModel.Keyword, 'or');
+      w.w('biz_home.url', 'like', searchModel.Keyword, 'or');
     }
     if (searchModel.id) w.eq('biz_home.id', searchModel.id);
     if (searchModel.ids) w.in('biz_home.id', searchModel.ids);
     if (searchModel.type) w.eq('biz_home.type', searchModel.type);
     if (searchModel.parent_id) w.eq('biz_home.parent_id', searchModel.parent_id);
     return w.build();
+  }
+  async getshow_typeSelect2({ key, selectID, pageIndex, onePageCount = 30, userId }) {
+    const factory = require('../factory');
+    const repo = factory.biz_home_show_typeRepo;
+    const strWhere = key ? `biz_home_show_type.title like :_key` : '';
+    const strParams = key ? { _key: `%${key}%` } : {};
+    return repo.getSelect2({
+      selectID, strWhere, strParams,
+      tableName: repo.tableName, primaryKey: repo.primaryKey,
+      titleName: 'title', pageIndex, onePageCount, userId,
+    });
   }
 }
 

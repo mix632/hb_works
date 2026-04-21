@@ -61,6 +61,7 @@ class biz_homeModel extends BaseModel {
       icon: d.icon || '',
       image: d.image || '',
       show_type: d.show_type ? parseInt(d.show_type) : 0,
+      show_type_title: d.show_type_title || '',
       is_more: d.hasOwnProperty('is_more') ? parseBool(d.is_more) : false,
       is_hot: d.hasOwnProperty('is_hot') ? parseBool(d.is_hot) : false,
       html: d.html || '',

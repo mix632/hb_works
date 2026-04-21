@@ -28,6 +28,7 @@ class HomeService extends BaseService {
     app.post(`${p}/save`, (req, reply) => this.save(req, reply));
     app.post(`${p}/swap`, (req, reply) => this.swap(req, reply));
     app.post(`${p}/copy`, (req, reply) => this.copy(req, reply));
+    app.post(`${p}/getshow_typeSelect2`, (req, reply) => this.getshow_typeSelect2(req, reply));
   }
 
   async get(req, reply) {
@@ -96,30 +97,16 @@ class HomeService extends BaseService {
     data.data.Items = this._dtoFilter(data.data.Items, 'list');
     return this._datesToString(data);
   }
-
-  async delete(req, reply) {
+  async getshow_typeSelect2(req, reply) {
     const params = this._params(req);
-    const isCascade = String(params.cascade || '') === 'true' || params.cascade === true || params.cascade === 1 || params.cascade === '1';
-    const ids = Array.isArray(params.ids) && params.ids.length
-      ? params.ids.map((x) => parseInt(x, 10)).filter((x) => Number.isFinite(x) && x > 0)
-      : (params.id ? [parseInt(params.id, 10)] : []);
-
-    if (!ids.length) return R({ succeed: false, msg: '传入参数有误' });
-
-    return this.myService.Transaction(async (db) => {
-      if (isCascade) {
-        await this.myService.Delete({
-          strWhere: `${this.myService.tableName}.parent_id in (:parentIds)`,
-          strParams: { parentIds: ids },
-          forceExecute: true,
-          userId: params.userId,
-          db,
-        });
-      }
-      return this.myService.Delete({ ids, userId: params.userId, db });
+    return this.myService.getshow_typeSelect2({
+      key: params.key || '',
+      selectID: params.selectID,
+      currentModel: params.model,
+      pageIndex: params.pageIndex,
+      userId: params.userId,
     });
   }
-
   async copy(req, reply) {
     const params = this._params(req);
     var model = await this.myService.Get({ id: params.id, isLoadDetailed: true });
