@@ -46,7 +46,7 @@ class RuoyiService extends BaseService {
   registerRoutes(app) {
     const p = '/ruoyi';
     app.get(`${p}/captchaImage`, { config: { noAuth: true } }, (req, reply) => this.captchaImage(req, reply));
-    app.post(`${p}/login`, (req, reply) => this.login(req, reply));
+    app.post(`${p}/login`, { config: { noAuth: true } }, (req, reply) => this.login(req, reply));
     app.get(`${p}/getInfo`, (req, reply) => this.getInfo(req, reply));
     app.post(`${p}/logout`, (req, reply) => this.logout(req, reply));
     app.get(`${p}/logout`, (req, reply) => this.logout(req, reply));
