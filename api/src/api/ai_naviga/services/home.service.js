@@ -23,7 +23,7 @@ class HomeService extends BaseService {
   registerRoutes(app) {
     const p = this.prefix;
     app.get(`${p}/get`, (req, reply) => this.get(req, reply));
-    app.post(`${p}/delete`, (req, reply) => this.delete(req, reply));
+    app.delete(`${p}/delete`, (req, reply) => this.delete(req, reply));
     app.get(`${p}/getlist`, (req, reply) => this.getList(req, reply));
     app.post(`${p}/save`, (req, reply) => this.save(req, reply));
   }
@@ -42,16 +42,6 @@ class HomeService extends BaseService {
     return R({ succeed: true, data: m });
   }
 
-  async save(req, reply) {
-    const params = this._params(req);
-    if (!params.model) return R({ succeed: false, msg: '传入参数有误' });
-
-    const result = await this.myService.Transaction(async (db) => {
-      return this._saveImpl(params, db, params.hasOwnProperty('isSaveDetailed') ? params.isSaveDetailed : true);
-    });
-    return result;
-  }
-
   async _saveImpl(params, db, isSaveDetailed = false) {
     const m = this._dtoFilter(params.model, 'save');
     const isAdd = this.myService.IDIsEmpty(m.id);
@@ -65,20 +55,6 @@ class HomeService extends BaseService {
       data: m.id,
       data1: newModel,
     });
-  }
-
-  async delete(req, reply) {
-    const params = this._params(req);
-    const result = await this.myService.Transaction(async (db) => {
-      if (params.ids && params.ids.length) {
-        return this.myService.Delete({ ids: params.ids, userId: params.userId, db });
-      }
-      if (params.id && !this.myService.IDIsEmpty(params.id)) {
-        return this.myService.Delete({ id: params.id, userId: params.userId, db });
-      }
-      return R({ succeed: false, msg: '传入参数有误' });
-    });
-    return result;
   }
 
   async getList(req, reply) {
