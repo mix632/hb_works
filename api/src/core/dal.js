@@ -492,9 +492,15 @@ class Dal {
 
   // ─── 工具方法 ──────────────────────────────────────────────────
   async swap({ models, userId, db }) {
+    let newModels = await this.GetList({ids: models.map(e => this.GetModelID({ model: e })), db});
     const sortIndexes = models.map(e => e[this.sortIndex]).sort((a, b) => a - b);
-    for (let i = 0; i < models.length; i++) models[i][this.sortIndex] = sortIndexes[i];
-    const result = await this.AddOrUpdateList({ models, userId, db });
+    for (let i = 0; i < models.length; i++) {
+      let newModel = newModels.filter(e => this.GetModelID({model: e}) === this.GetModelID({model: models[i]}))[0];
+      if (newModel) {
+        newModel[this.sortIndex] = sortIndexes[i];
+      }
+    }
+    const result = await this.AddOrUpdateList({ models: newModels, userId, db });
     return R({ succeed: result.succeed, msg: result.succeed ? '交换成功' : '交换失败' });
   }
 
