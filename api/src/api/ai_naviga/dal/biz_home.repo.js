@@ -2,7 +2,6 @@
 
 const { Dal } = require('../../../core/dal');
 const model = require('../model/biz_home.model');
-const serviceRegistry = require('../../../core/serviceRegistry');
 
 /**
  * biz_home — 核心表
@@ -32,17 +31,13 @@ class BizHomeRepo extends Dal {
     `.replace(/\n\s+/g, ' ').trim();
   }
 
-  get system_fileRepo() {
-    return serviceRegistry.get('public.system_fileRepo');
-  }
-
   async Load({ datas, userId, isLoadDetailed = false, isGetValue = true, db = null }) {
     if (!datas || !datas.length) return;
     if (!isLoadDetailed) return;
 
     const ids = datas.map(e => this.GetModelID({ model: e }));
     if (ids.length) {
-      const files = await this.system_fileRepo.GetFilesForName({
+      const files = await this.getRepo('public.system_fileRepo').GetFilesForName({
         fileType: 'biz_home',
         TargetIDs: ids,
         userId,
@@ -66,7 +61,7 @@ class BizHomeRepo extends Dal {
         i.TargetID = m.id;
       }
     }
-    await this.system_fileRepo.AddOrUpdateMulti({
+    await this.getRepo('public.system_fileRepo').AddOrUpdateMulti({
       files: m.files,
       name: 'biz_home',
       tableId: m.id,

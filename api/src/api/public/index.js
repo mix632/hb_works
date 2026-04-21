@@ -14,9 +14,15 @@ const serviceRegistry = require('../../core/serviceRegistry');
 async function publicModule(app) {
   // dictCache.register('gb_user_status', userStatusRepo);
 
-  // ─── 跨模块暴露：其他模块通过 serviceRegistry.get('public.xxx') 获取 ───
-  serviceRegistry.register('public.system_fileRepo', require('./dal/system_file.repo'));
-  serviceRegistry.register('public.system_file_typeRepo', require('./dal/system_file_type.repo'));
+  // ─── 跨模块暴露：遍历 dal/ 下所有 *.repo.js，自动注册到 serviceRegistry ───
+  // 命名规则：system_file.repo.js → serviceRegistry key = 'public.system_fileRepo'
+  // serviceRegistry.register('public.system_file_typeRepo', require('./dal/system_file_type.repo'));
+  const dalDir = path.join(__dirname, 'dal');
+  const repoFiles = fs.readdirSync(dalDir).filter(f => f.endsWith('.repo.js'));
+  for (const file of repoFiles) {
+    const key = 'public.' + file.replace('.repo.js', '') + 'Repo';
+    serviceRegistry.register(key, require(path.join(dalDir, file)));
+  }
 
   const servicesDir = path.join(__dirname, 'services');
   const files = fs.readdirSync(servicesDir).filter(f => f.endsWith('.service.js')).sort();

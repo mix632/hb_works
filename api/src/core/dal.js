@@ -4,6 +4,7 @@ const sequelize = require('sequelize');
 const { nowStr } = require('../utils/dateUtil');
 const { R } = require('./errors');
 const CacheMixin = require('./cacheMixin');
+const serviceRegistry = require('./serviceRegistry');
 
 let _parentLog = null;
 
@@ -32,6 +33,10 @@ class Dal {
 
   _getSeq() {
     return this.myConfig.sequelize;
+  }
+
+  getRepo(name) {
+    return serviceRegistry.get(name);
   }
 
   _mapRawResults(datas) {
