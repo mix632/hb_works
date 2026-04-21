@@ -32,7 +32,7 @@ function collectServiceFiles(dir) {
  * 自动注册 services 目录及任意层级子目录下所有 *.service.js
  * （字典缓存若需 gb_user_status，请与 cdp 共用，勿在此重复 register）
  */
-async function navigaModule(app) {
+async function AiNavigaModule(app) {
   const servicesDir = path.join(__dirname, 'services');
   const absPaths = collectServiceFiles(servicesDir).sort((a, b) => a.localeCompare(b));
 
@@ -49,8 +49,6 @@ async function navigaModule(app) {
       app.log.error({ err }, `  service load failed: ${rel}`);
     }
   }
-
-  app.log.info(`Module [naviga] loaded, ${absPaths.length} services scanned`);
 }
 
-module.exports = navigaModule;
+module.exports = AiNavigaModule;
