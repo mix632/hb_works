@@ -154,7 +154,7 @@ class BaseService {
     const params = this._params(req);
     const result = await this.myService.Transaction(async (db) => {
       if (params.ids && params.ids.length) return this.myService.Delete({ ids: params.ids, userId: params.userId, db });
-      if (params.id && !this.myService.IDIsEmpty(params.id)) return this.myService.Delete({ id: params.id, userId: params.userId, db });
+      if (params[this.myService.primaryKey] && !this.myService.IDIsEmpty(params[this.myService.primaryKey])) return this.myService.Delete({ id: params[this.myService.primaryKey], userId: params.userId, db });
       return R({ succeed: false, msg: '传入参数有误' });
     });
     return result;
