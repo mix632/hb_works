@@ -1,6 +1,7 @@
 'use strict';
 
 const jwt = require('jsonwebtoken');
+const fp = require('fastify-plugin');
 const config = require('../core/serverConfig');
 
 /**
@@ -21,7 +22,8 @@ async function authPlugin(app, opts) {
 
   app.addHook('onRequest', async (req, reply) => {
     const authHeader = req.headers.authorization;
-    if (isWhitelisted(req.url)) return;
+    const noAuthByRoute = req.routeOptions?.config?.noAuth === true || req.context?.config?.noAuth === true;
+    if (noAuthByRoute || isWhitelisted(req.url)) return;
 
     if (!authHeader) {
       reply.code(401).send({ succeed: false, msg: '未授权访问', code: 401 });
@@ -46,4 +48,4 @@ async function authPlugin(app, opts) {
   });
 }
 
-module.exports = authPlugin;
+module.exports = fp(authPlugin, { name: 'auth-plugin' });
