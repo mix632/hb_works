@@ -135,7 +135,11 @@ class HomeService extends BaseService {
       }
       return [];
     }
-    const validHomes = (homes || []).filter((item) => _parsePlatformIds(item ? item.platform : null).includes(Number(platformId)));
+    const validHomes = (homes || []).filter((item) => {
+      const ids = _parsePlatformIds(item ? item.platform : null);
+      if (!ids.length) return true; // 为空表示全平台支持
+      return ids.includes(Number(platformId));
+    });
     const parents = validHomes.filter((item) => Number(item.parent_id) <= 0);
     const children = validHomes.filter((item) => Number(item.parent_id) > 0);
 
