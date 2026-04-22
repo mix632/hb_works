@@ -36,11 +36,13 @@ class HomeService extends BaseService {
   async publish(req, reply) {
     void reply;
     const params = this._params(req);
+    // 1) 校验并解析发布类型
     const typeId = Number.parseInt(params.type, 10);
     if (!Number.isFinite(typeId) || typeId <= 0) {
       return R({ succeed: false, msg: 'type参数有误' });
     }
 
+    // 2) 获取类型名称（静态表中 type 存字符串）
     const typeModel = await this.factory.biz_home_typeRepo.Get({
       id: typeId,
       userId: params.userId,
@@ -51,6 +53,7 @@ class HomeService extends BaseService {
     }
     const typeName = typeModel.name || typeModel.title || String(typeId);
 
+    // 3) 拉取本类型 home 数据 + 全部平台
     const [homes, platforms] = await Promise.all([
       this.myService.GetList({
         strWhere: 'biz_home.type = :_publishType',
@@ -70,6 +73,7 @@ class HomeService extends BaseService {
       return R({ succeed: false, msg: '未配置支持平台，发布失败' });
     }
 
+    // 4) 事务发布：按平台生成一份静态数据并写入 biz_home_static
     const result = await this.myService.Transaction(async (db) => {
       const published = [];
       for (const p of platforms) {
@@ -108,7 +112,9 @@ class HomeService extends BaseService {
   }
 
   _buildStaticDataForPlatform(homes, platformId) {
+    // 先按平台筛选，再做父子分组（parent_id <= 0 为父项）
     let _parsePlatformIds = (value) => {
+      // 兼容多种存储形态：数组 / JSON 字符串 / 逗号分隔字符串 / 对象映射
       if (Array.isArray(value)) {
         return value
           .map((v) => Number.parseInt(v, 10))
@@ -137,7 +143,7 @@ class HomeService extends BaseService {
     }
     const validHomes = (homes || []).filter((item) => {
       const ids = _parsePlatformIds(item ? item.platform : null);
-      if (!ids.length) return true; // 为空表示全平台支持
+      if (!ids.length) return true; // platform 为空表示全平台支持
       return ids.includes(Number(platformId));
     });
     const parents = validHomes.filter((item) => Number(item.parent_id) <= 0);
@@ -150,6 +156,7 @@ class HomeService extends BaseService {
       childMap.get(pid).push(child);
     }
     let _normalizeImage = (raw) => {
+      // image 可能是数组、JSON 字符串或普通字符串，统一取首图
       if (Array.isArray(raw)) return raw[0] || '';
       if (typeof raw !== 'string') return raw || '';
       const v = raw.trim();
@@ -166,6 +173,7 @@ class HomeService extends BaseService {
       return v;
     }
     let _toStaticRow = (item) => {
+      // 发布结构统一裁剪为静态消费字段
       return {
         title: item.title || '',
         descript: item.descript || '',
