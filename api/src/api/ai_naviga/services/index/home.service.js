@@ -688,11 +688,11 @@ class NavigaHomeService extends BaseService {
 
   registerRoutes(app) {
     const p = this.prefix;
-    app.get(`${p}/bootstrap`, (req, reply) => this.bootstrap(req, reply));
-    app.get(`${p}/page-config`, (req, reply) => this.pageConfig(req, reply));
-    app.get(`${p}/home-categories`, (req, reply) => this.homeCategories(req, reply));
-    app.get(`${p}/hub-article`, (req, reply) => this.hubArticle(req, reply));
-    app.get(`${p}/test`, (req, reply) => this.test(req, reply));
+    app.get(`${p}/bootstrap`, { config: { noAuth: true } }, (req, reply) => this.bootstrap(req, reply));
+    app.get(`${p}/page-config`, { config: { noAuth: true } }, (req, reply) => this.pageConfig(req, reply));
+    app.get(`${p}/home-categories`, { config: { noAuth: true } }, (req, reply) => this.homeCategories(req, reply));
+    app.get(`${p}/hub-article`, { config: { noAuth: true } }, (req, reply) => this.hubArticle(req, reply));
+    app.get(`${p}/test`, { config: { noAuth: true } }, (req, reply) => this.test(req, reply));
   }
 
   async homeCategories(req, reply) {
