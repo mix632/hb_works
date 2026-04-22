@@ -2,6 +2,7 @@
 
 const path = require('path');
 const fs = require('fs');
+const dictCache = require('../../core/dictCache');
 
 /**
  * 递归收集 dir 下（含子目录、孙目录…）所有 *.service.js 的绝对路径
@@ -33,6 +34,10 @@ function collectServiceFiles(dir) {
  * （字典缓存若需 gb_user_status，请与 cdp 共用，勿在此重复 register）
  */
 async function AiNavigaModule(app) {
+  //缓存
+  const biz_platformRepo = require('./dal/biz_platform.repo');
+  dictCache.register('biz_platform', biz_platformRepo);
+
   const servicesDir = path.join(__dirname, 'services');
   const absPaths = collectServiceFiles(servicesDir).sort((a, b) => a.localeCompare(b));
 
