@@ -35,8 +35,148 @@ class HomeService extends BaseService {
   /** 发布（占位）：前端传 type，后续接缓存刷新 / 静态生成等 */
   async publish(req, reply) {
     void reply;
-    this._params(req);
-    return R({ succeed: true, msg: '发布成功', data: null });
+    const params = this._params(req);
+    const typeId = Number.parseInt(params.type, 10);
+    if (!Number.isFinite(typeId) || typeId <= 0) {
+      return R({ succeed: false, msg: 'type参数有误' });
+    }
+
+    const typeModel = await this.factory.biz_home_typeRepo.Get({
+      id: typeId,
+      userId: params.userId,
+      isLoadDetailed: false,
+    });
+    if (!typeModel) {
+      return R({ succeed: false, msg: '页面类型不存在' });
+    }
+    const typeName = typeModel.name || typeModel.title || String(typeId);
+
+    const [homes, platforms] = await Promise.all([
+      this.myService.GetList({
+        strWhere: 'biz_home.type = :_publishType',
+        strParams: { _publishType: typeId },
+        strOrder: 'biz_home.parent_id asc, biz_home.sort_index asc, biz_home.id asc',
+        isLoadDetailed: false,
+        userId: params.userId,
+      }),
+      this.factory.biz_platformRepo.GetList({
+        strOrder: 'biz_platform.sort_index asc, biz_platform.id asc',
+        isLoadDetailed: false,
+        userId: params.userId,
+      }),
+    ]);
+
+    if (!platforms || !platforms.length) {
+      return R({ succeed: false, msg: '未配置支持平台，发布失败' });
+    }
+
+    const result = await this.myService.Transaction(async (db) => {
+      const published = [];
+      for (const p of platforms) {
+        const platformId = Number.parseInt(p.id, 10);
+        if (!Number.isFinite(platformId) || platformId <= 0) continue;
+
+        const staticData = this._buildStaticDataForPlatform(homes || [], platformId);
+        const staticModel = {
+          id: 0,
+          type: typeName,
+          platform: p.name || p.title || String(platformId),
+          is_new: true,
+          data: staticData,
+        };
+
+        const staticId = await this.factory.biz_home_staticRepo.AddOrUpdate({
+          model: staticModel,
+          isSaveDetailed: true,
+          userId: params.userId,
+          db,
+        });
+        if (this.factory.biz_home_staticRepo.IDIsEmpty(staticId)) {
+          return R({ succeed: false, msg: `平台 ${staticModel.platform} 发布失败` });
+        }
+        published.push({
+          id: staticId,
+          platform: staticModel.platform,
+          count: staticData.length,
+        });
+      }
+
+      return R({ succeed: true, msg: '发布成功', data: { type: typeName, items: published } });
+    });
+
+    return result;
+  }
+
+  _buildStaticDataForPlatform(homes, platformId) {
+    let _parsePlatformIds = (value) => {
+      if (Array.isArray(value)) {
+        return value
+          .map((v) => Number.parseInt(v, 10))
+          .filter((n) => Number.isFinite(n) && n > 0);
+      }
+      if (typeof value === 'string') {
+        const s = value.trim();
+        if (!s) return [];
+        try {
+          const parsed = JSON.parse(s);
+          return _parsePlatformIds(parsed);
+        } catch (_) {
+          return s
+            .split(',')
+            .map((v) => Number.parseInt(v.trim(), 10))
+            .filter((n) => Number.isFinite(n) && n > 0);
+        }
+      }
+      if (value && typeof value === 'object') {
+        return Object.keys(value)
+          .filter((k) => value[k])
+          .map((k) => Number.parseInt(k, 10))
+          .filter((n) => Number.isFinite(n) && n > 0);
+      }
+      return [];
+    }
+    const validHomes = (homes || []).filter((item) => _parsePlatformIds(item ? item.platform : null).includes(Number(platformId)));
+    const parents = validHomes.filter((item) => Number(item.parent_id) <= 0);
+    const children = validHomes.filter((item) => Number(item.parent_id) > 0);
+
+    const childMap = new Map();
+    for (const child of children) {
+      const pid = Number.parseInt(child.parent_id, 10) || 0;
+      if (!childMap.has(pid)) childMap.set(pid, []);
+      childMap.get(pid).push(child);
+    }
+    let _normalizeImage = (raw) => {
+      if (Array.isArray(raw)) return raw[0] || '';
+      if (typeof raw !== 'string') return raw || '';
+      const v = raw.trim();
+      if (!v) return '';
+      if ((v.startsWith('[') && v.endsWith(']')) || (v.startsWith('{') && v.endsWith('}'))) {
+        try {
+          const parsed = JSON.parse(v);
+          if (Array.isArray(parsed)) return parsed[0] || '';
+          if (typeof parsed === 'string') return parsed;
+        } catch (_) {
+          return v;
+        }
+      }
+      return v;
+    }
+    let _toStaticRow = (item) => {
+      return {
+        title: item.title || '',
+        descript: item.descript || '',
+        image: _normalizeImage(item.image),
+        icon: item.icon || '',
+        url: item.url || '',
+        hot: !!item.is_hot,
+      };
+    }
+    return parents.map((parent) => {
+      const row = _toStaticRow(parent);
+      const list = (childMap.get(parent.id) || []).map((child) => _toStaticRow(child));
+      if (list.length) row.list = list;
+      return row;
+    });
   }
 
   async get(req, reply) {
