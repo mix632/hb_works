@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { dateFormat } = require('../utils/dateUtil');
 const { R } = require('./errors');
 const serverConfig = require('./serverConfig');
+const dictCache = require('./dictCache');
 
 /** JWT 标准声明，不合并进业务参数 */
 const JWT_META_KEYS = new Set(['iat', 'exp', 'nbf', 'iss', 'aud', 'jti']);
@@ -111,6 +112,9 @@ class BaseService {
     const result = await this.myService.Transaction(async (db) => {
       return this._saveImpl(params, db, params.hasOwnProperty('isSaveDetailed') ? params.isSaveDetailed : true);
     });
+    if (dictCache) {
+      await dictCache.reload(this.myService.tableName);
+    }
     return result;
   }
 
@@ -157,6 +161,9 @@ class BaseService {
       if (params[this.myService.primaryKey] && !this.myService.IDIsEmpty(params[this.myService.primaryKey])) return this.myService.Delete({ id: params[this.myService.primaryKey], userId: params.userId, db });
       return R({ succeed: false, msg: '传入参数有误' });
     });
+    if (dictCache) {
+      await dictCache.reload(this.myService.tableName);
+    }
     return result;
   }
 

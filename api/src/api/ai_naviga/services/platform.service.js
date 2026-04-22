@@ -9,6 +9,7 @@ const dto = require('../dto/biz_platform.dto');
 const util = require('../../../utils');
 const config = require('../../../core/serverConfig');
 const serviceRegistry = require('../../../core/serviceRegistry');
+const dictCache = require('../../../core/dictCache');
 
 class PlatformService extends BaseService {
   constructor() {
@@ -27,6 +28,17 @@ class PlatformService extends BaseService {
     app.get(`${p}/getlist`, (req, reply) => this.getList(req, reply));
     app.post(`${p}/save`, (req, reply) => this.save(req, reply));
     app.post(`${p}/swap`, (req, reply) => this.swap(req, reply));
+    /** 首页编辑「支持平台」多选数据源（占位，后续可接 biz_platform 表） */
+    app.get(`${p}/platform-options`, (req, reply) => this.platformOptions(req, reply));
+  }
+
+  async platformOptions(req, reply) {
+    let rows = dictCache.getAll('biz_platform');
+    const data = (rows || []).map((row) => ({
+      value: row.id,
+      label: row.title,
+    }));
+    return R({ succeed: true, data });
   }
 
   async get(req, reply) {
