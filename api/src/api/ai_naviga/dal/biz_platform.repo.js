@@ -60,8 +60,8 @@ class BizPlatformRepo extends Dal {
   GetSearchSQL({ searchModel, userId }) {
     const w = this.safeWhere();
     if (searchModel.Keyword && searchModel.Keyword.trim()) {
-      w.w('biz_platform.title', searchModel.Keyword, 'like', 'or');
-      w.w('biz_platform.name', searchModel.Keyword, 'like', 'or');
+      w.w('biz_platform.title', 'like', searchModel.Keyword, 'or');
+      w.w('biz_platform.name', 'like', searchModel.Keyword, 'or');
     }
     if (searchModel.id) w.eq('biz_platform.id', searchModel.id);
     if (searchModel.ids) w.in('biz_platform.id', searchModel.ids);

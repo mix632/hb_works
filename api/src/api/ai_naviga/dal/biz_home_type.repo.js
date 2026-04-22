@@ -60,7 +60,8 @@ class BizHomeTypeRepo extends Dal {
   GetSearchSQL({ searchModel, userId }) {
     const w = this.safeWhere();
     if (searchModel.Keyword && searchModel.Keyword.trim()) {
-      w.w('biz_home_type.title', searchModel.Keyword, 'like', 'or');
+      w.w('biz_home_type.title', 'like', searchModel.Keyword, 'or');
+      w.w('biz_home_type.name', 'like', searchModel.Keyword, 'or');
     }
     if (searchModel.id) w.eq('biz_home_type.id', searchModel.id);
     if (searchModel.ids) w.in('biz_home_type.id', searchModel.ids);

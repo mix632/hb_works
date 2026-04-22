@@ -8,12 +8,12 @@
  */
 module.exports = {
   list: [
-    'id', 'title', 'sort_index', 
+    'id', 'title', 'name', 'sort_index', 
   ],
   detail: [
-    'id', 'title', 'sort_index', 'created_at', 'updated_at', 'deleted', 
+    'id', 'title', 'name', 'sort_index', 'created_at', 'updated_at', 'deleted', 
   ],
   save: [
-    'id', 'title', 'sort_index', 'created_at', 'updated_at', 'deleted', 
+    'id', 'title', 'name', 'sort_index', 'created_at', 'updated_at', 'deleted', 
   ],
 };
