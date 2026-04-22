@@ -28,7 +28,15 @@ class HomeService extends BaseService {
     app.post(`${p}/save`, (req, reply) => this.save(req, reply));
     app.post(`${p}/swap`, (req, reply) => this.swap(req, reply));
     app.post(`${p}/copy`, (req, reply) => this.copy(req, reply));
+    app.post(`${p}/publish`, (req, reply) => this.publish(req, reply));
     app.post(`${p}/getshow_typeSelect2`, (req, reply) => this.getshow_typeSelect2(req, reply));
+  }
+
+  /** 发布（占位）：前端传 type，后续接缓存刷新 / 静态生成等 */
+  async publish(req, reply) {
+    void reply;
+    this._params(req);
+    return R({ succeed: true, msg: '发布成功', data: null });
   }
 
   async get(req, reply) {
