@@ -16,10 +16,14 @@ class biz_homeModel extends BaseModel {
       parent_id: { type: sequelize.INTEGER, field: 'parent_id', defaultValue: 0, allowNull: false },
       // 名称
       title: { type: sequelize.STRING,  field: 'title', defaultValue: '', allowNull: false },
+      // 发布时间
+      date: { type: sequelize.DATE, field: 'date', defaultValue: MIN_DATE, allowNull: false },
       // 备注
       descript: { type: sequelize.STRING,  field: 'descript', defaultValue: '', allowNull: false },
       // 地址
       url: { type: sequelize.STRING,  field: 'url', defaultValue: '', allowNull: false },
+      // 是否同站地址
+      url_inner: { type: sequelize.BOOLEAN, field: 'url_inner', defaultValue: false, allowNull: false },
       // 显示icon
       icon: { type: sequelize.STRING,  field: 'icon', defaultValue: '', allowNull: false },
       // 图片
@@ -56,8 +60,10 @@ class biz_homeModel extends BaseModel {
       type: d.type ? parseInt(d.type) : 0,
       parent_id: d.parent_id ? parseInt(d.parent_id) : 0,
       title: d.title || '',
+      date: formatDate(d.date, 'YYYY-MM-DD HH:mm:ss'),
       descript: d.descript || '',
       url: d.url || '',
+      url_inner: d.hasOwnProperty('url_inner') ? parseBool(d.url_inner) : false,
       icon: d.icon || '',
       image: d.image || '',
       show_type: d.show_type ? parseInt(d.show_type) : 0,

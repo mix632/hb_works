@@ -8,12 +8,12 @@
  */
 module.exports = {
   list: [
-    'id', 'type', 'title', 'descript', 'url', 'icon', 'show_type', 'is_more', 'is_hot', 'sort_index', 'files' 
+    'id', 'type', 'title', 'descript', 'url', 'icon', 'show_type', 'show_type_title', 'is_more', 'is_hot', 'sort_index', 'files', 
   ],
   detail: [
-    'id', 'type', 'parent_id', 'title', 'descript', 'url', 'icon', 'image', 'show_type', 'is_more', 'is_hot', 'html', 'data', 'platform', 'sort_index', 'created_at', 'updated_at', 'deleted', 'files' 
+    'id', 'type', 'parent_id', 'title', 'date', 'descript', 'url', 'url_inner', 'icon', 'image', 'show_type', 'is_more', 'is_hot', 'html', 'data', 'platform', 'sort_index', 'created_at', 'updated_at', 'deleted', 'files', 
   ],
   save: [
-    'id', 'type', 'parent_id', 'title', 'descript', 'url', 'icon', 'image', 'show_type', 'is_more', 'is_hot', 'html', 'data', 'platform', 'sort_index', 'created_at', 'updated_at', 'deleted', 'files'
+    'id', 'type', 'parent_id', 'title', 'date', 'descript', 'url', 'url_inner', 'icon', 'image', 'show_type', 'is_more', 'is_hot', 'html', 'data', 'platform', 'sort_index', 'created_at', 'updated_at', 'deleted', 'files', 
   ],
 };

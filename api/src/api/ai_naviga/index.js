@@ -35,8 +35,12 @@ function collectServiceFiles(dir) {
  */
 async function AiNavigaModule(app) {
   //缓存
+  const biz_home_show_typeRepo = require('./dal/biz_home_show_type.repo');
+  dictCache.register('biz_home_show_type', biz_home_show_typeRepo);
   const biz_platformRepo = require('./dal/biz_platform.repo');
   dictCache.register('biz_platform', biz_platformRepo);
+  const biz_home_typeRepo = require('./dal/biz_home_type.repo');
+  dictCache.register('biz_home_type', biz_home_typeRepo);
 
   const servicesDir = path.join(__dirname, 'services');
   const absPaths = collectServiceFiles(servicesDir).sort((a, b) => a.localeCompare(b));
