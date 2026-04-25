@@ -36,7 +36,7 @@ class MongoTestService {
     try {
       const params = this._params(req);
       const title = params.title ? String(params.title).trim() : '';
-      if (!title) return R({ Succeed: false, Message: 'title不能为空' });
+      if (!title) return R({ succeed: false, msg: 'title不能为空' });
 
       const id = await mongoDal.insertOne({
         model: {
@@ -47,9 +47,9 @@ class MongoTestService {
         },
       });
       const data = await mongoDal.findOne({ id, filter: { deleted: false } });
-      return R({ Succeed: true, Message: '创建成功', Data: data });
+      return R({ succeed: true, msg: '创建成功', data });
     } catch (err) {
-      return R({ Succeed: false, Message: err.message || '创建失败', Data: null });
+      return R({ succeed: false, msg: err.message || '创建失败', data: null });
     }
   }
 
@@ -57,12 +57,12 @@ class MongoTestService {
     void reply;
     try {
       const params = this._params(req);
-      if (!params.id) return R({ Succeed: false, Message: 'id不能为空', Data: null });
+      if (!params.id) return R({ succeed: false, msg: 'id不能为空', data: null });
       const data = await mongoDal.findOne({ id: params.id, filter: { deleted: false } });
-      if (!data) return R({ Succeed: false, Message: '数据不存在', Data: null });
-      return R({ Succeed: true, Message: '', Data: data });
+      if (!data) return R({ succeed: false, msg: '数据不存在', data: null });
+      return R({ succeed: true, msg: '', data });
     } catch (err) {
-      return R({ Succeed: false, Message: err.message || '查询失败', Data: null });
+      return R({ succeed: false, msg: err.message || '查询失败', data: null });
     }
   }
 
@@ -86,9 +86,9 @@ class MongoTestService {
       ]);
 
       return R({
-        Succeed: true,
-        Message: '',
-        Data: {
+        succeed: true,
+        msg: '',
+        data: {
           Items: items,
           DataTotal: total,
           PageIndex: pageIndex,
@@ -96,7 +96,7 @@ class MongoTestService {
         },
       });
     } catch (err) {
-      return R({ Succeed: false, Message: err.message || '列表查询失败', Data: null });
+      return R({ succeed: false, msg: err.message || '列表查询失败', data: null });
     }
   }
 
@@ -104,14 +104,14 @@ class MongoTestService {
     void reply;
     try {
       const params = this._params(req);
-      if (!params.id) return R({ Succeed: false, Message: 'id不能为空', Data: null });
+      if (!params.id) return R({ succeed: false, msg: 'id不能为空', data: null });
 
       const values = {};
       if (params.title != null) values.title = String(params.title);
       if (params.content != null) values.content = String(params.content);
       if (params.status != null && params.status !== '') values.status = Number(params.status) || 0;
       if (!Object.keys(values).length) {
-        return R({ Succeed: false, Message: '没有可更新字段', Data: null });
+        return R({ succeed: false, msg: '没有可更新字段', data: null });
       }
 
       const updated = await mongoDal.updateOne({
@@ -119,12 +119,12 @@ class MongoTestService {
         filter: { deleted: false },
         values,
       });
-      if (!updated) return R({ Succeed: false, Message: '更新失败或数据不存在', Data: null });
+      if (!updated) return R({ succeed: false, msg: '更新失败或数据不存在', data: null });
 
       const data = await mongoDal.findOne({ id: params.id, filter: { deleted: false } });
-      return R({ Succeed: true, Message: '更新成功', Data: data });
+      return R({ succeed: true, msg: '更新成功', data });
     } catch (err) {
-      return R({ Succeed: false, Message: err.message || '更新失败', Data: null });
+      return R({ succeed: false, msg: err.message || '更新失败', data: null });
     }
   }
 
@@ -132,12 +132,12 @@ class MongoTestService {
     void reply;
     try {
       const params = this._params(req);
-      if (!params.id) return R({ Succeed: false, Message: 'id不能为空', Data: null });
+      if (!params.id) return R({ succeed: false, msg: 'id不能为空', data: null });
       const deleted = await mongoDal.deleteOne({ id: params.id, filter: { deleted: false } });
-      if (!deleted) return R({ Succeed: false, Message: '删除失败或数据不存在', Data: null });
-      return R({ Succeed: true, Message: '删除成功', Data: params.id });
+      if (!deleted) return R({ succeed: false, msg: '删除失败或数据不存在', data: null });
+      return R({ succeed: true, msg: '删除成功', data: params.id });
     } catch (err) {
-      return R({ Succeed: false, Message: err.message || '删除失败', Data: null });
+      return R({ succeed: false, msg: err.message || '删除失败', data: null });
     }
   }
 }
