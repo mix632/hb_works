@@ -1,5 +1,6 @@
 'use strict';
 
+const { randomUUID } = require('crypto');
 const MongoDal = require('../../../core/mongoDal');
 const model = require('../model/mb_test.model');
 
@@ -35,6 +36,13 @@ class MbTestRepo extends MongoDal {
       filter.age = parseInt(searchModel.age, 10) || 0;
     }
     return filter;
+  }
+
+  AddOrUpdate_SetCreateCode({ model }) {
+    super.AddOrUpdate_SetCreateCode({ model });
+    if (!model.id) {
+      model.id = randomUUID();
+    }
   }
 }
 
