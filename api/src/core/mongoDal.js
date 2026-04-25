@@ -119,6 +119,12 @@ class MongoDal {
 
   _sanitizePersistModel(model) {
     const payload = { ...model };
+    if (payload._id === '' || payload._id == null) {
+      delete payload._id;
+    }
+    if (payload.id === '' || payload.id == null) {
+      delete payload.id;
+    }
     if (this.primaryKey === '_id' && Object.prototype.hasOwnProperty.call(payload, 'id') && payload.id === payload._id) {
       delete payload.id;
     }
