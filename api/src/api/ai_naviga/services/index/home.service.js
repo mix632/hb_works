@@ -42,6 +42,7 @@
 
 const BaseService = require('../../../../core/baseService');
 const { R } = require('../../../../core/errors');
+const clickRepo = require('../../dal/click.repo');
 
 
 function buildHomeCategoriesPayload() {
@@ -692,7 +693,45 @@ class NavigaHomeService extends BaseService {
     app.get(`${p}/page-config`, { config: { noAuth: true } }, (req, reply) => this.pageConfig(req, reply));
     app.get(`${p}/home-categories`, { config: { noAuth: true } }, (req, reply) => this.homeCategories(req, reply));
     app.get(`${p}/hub-article`, { config: { noAuth: true } }, (req, reply) => this.hubArticle(req, reply));
+    app.post(`${p}/click`, { config: { noAuth: true } }, (req, reply) => this.click(req, reply));
     app.get(`${p}/test`, { config: { noAuth: true } }, (req, reply) => this.test(req, reply));
+  }
+
+  async click(req, reply) {
+    void reply;
+    try {
+      const params = this._params(req);
+      if (!params.fingerprint || !String(params.fingerprint).trim()) {
+        return R({ succeed: false, msg: 'fingerprint不能为空', data: null });
+      }
+      if (params.home_id == null || params.home_id === '') {
+        return R({ succeed: false, msg: 'home_id不能为空', data: null });
+      }
+      if (!params.platform || !String(params.platform).trim()) {
+        return R({ succeed: false, msg: 'platform不能为空', data: null });
+      }
+      if (!params.event_type || !String(params.event_type).trim()) {
+        return R({ succeed: false, msg: 'event_type不能为空', data: null });
+      }
+      if (!params.channel || !String(params.channel).trim()) {
+        return R({ succeed: false, msg: 'channel不能为空', data: null });
+      }
+
+      const savedId = await clickRepo.AddOrUpdate({
+        model: {
+          fingerprint: String(params.fingerprint).trim(),
+          home_id: parseInt(params.home_id, 10) || 0,
+          time: new Date(),
+          platform: String(params.platform).trim(),
+          event_type: String(params.event_type).trim(),
+          channel: String(params.channel).trim(),
+        },
+      });
+
+      return R({ succeed: !!savedId, msg: savedId ? '' : '保存失败', data: savedId || '' });
+    } catch (err) {
+      return R({ succeed: false, msg: err.message || '点击埋点保存失败', data: null });
+    }
   }
 
   async homeCategories(req, reply) {
