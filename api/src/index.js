@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs-extra');
 const Fastify = require('fastify');
 const config = require('./core/serverConfig');
+const MongoDal = require('./core/mongoDal');
 const dictCache = require('./core/dictCache');
 
 async function start() {
@@ -101,6 +102,7 @@ async function start() {
     app.log.info(`${signal} received, shutting down...`);
     await app.close();
     if (config.redis) config.redis.disconnect();
+    await MongoDal.closeMongo();
     process.exit(0);
   };
   process.on('SIGTERM', () => shutdown('SIGTERM'));

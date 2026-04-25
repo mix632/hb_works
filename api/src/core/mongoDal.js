@@ -1,7 +1,11 @@
 'use strict';
 
-const { ObjectId } = require('mongodb');
 const serverConfig = require('./serverConfig');
+
+let _mongodb = null;
+let _mongoClient = null;
+let _mongoDb = null;
+let _mongoConnectPromise = null;
 
 class MongoDal {
   constructor({ collectionName, primaryKey = '_id', deleteKey = 'deleted' } = {}) {
@@ -11,8 +15,71 @@ class MongoDal {
     this.myConfig = serverConfig;
   }
 
+  static _getMongoLib() {
+    if (!_mongodb) {
+      _mongodb = require('mongodb');
+    }
+    return _mongodb;
+  }
+
+  static _getMongoOptions(mongodbConfig) {
+    const options = {
+      maxPoolSize: mongodbConfig.maxPoolSize || 10,
+      minPoolSize: mongodbConfig.minPoolSize || 1,
+      serverSelectionTimeoutMS: mongodbConfig.serverSelectionTimeoutMS || 5000,
+    };
+    if (mongodbConfig.authSource) {
+      options.authSource = mongodbConfig.authSource;
+    }
+    return options;
+  }
+
+  static async getMongoClient() {
+    const mongodbConfig = serverConfig.mongodbConfig || { isUse: false };
+    if (!mongodbConfig.isUse) return null;
+    if (_mongoClient) return _mongoClient;
+    if (_mongoConnectPromise) return _mongoConnectPromise;
+
+    const { MongoClient } = MongoDal._getMongoLib();
+    const client = new MongoClient(mongodbConfig.uri, MongoDal._getMongoOptions(mongodbConfig));
+    _mongoConnectPromise = client.connect().then((connectedClient) => {
+      _mongoClient = connectedClient;
+      _mongoDb = connectedClient.db(mongodbConfig.dbName);
+      _mongoConnectPromise = null;
+      return connectedClient;
+    }).catch((err) => {
+      _mongoConnectPromise = null;
+      throw err;
+    });
+
+    return _mongoConnectPromise;
+  }
+
+  static async getMongoDb() {
+    const mongodbConfig = serverConfig.mongodbConfig || { isUse: false };
+    if (!mongodbConfig.isUse) return null;
+    if (_mongoDb) return _mongoDb;
+    await MongoDal.getMongoClient();
+    return _mongoDb;
+  }
+
+  static async closeMongo() {
+    if (_mongoConnectPromise) {
+      try {
+        await _mongoConnectPromise;
+      } catch (_) {
+        return;
+      }
+    }
+    if (_mongoClient) {
+      await _mongoClient.close();
+      _mongoClient = null;
+      _mongoDb = null;
+    }
+  }
+
   async _getDb() {
-    const db = await this.myConfig.getMongoDb();
+    const db = await MongoDal.getMongoDb();
     if (!db) throw new Error('MongoDB is not enabled');
     return db;
   }
@@ -24,6 +91,7 @@ class MongoDal {
   }
 
   toObjectId(id) {
+    const { ObjectId } = MongoDal._getMongoLib();
     if (!id) return null;
     if (id instanceof ObjectId) return id;
     if (!ObjectId.isValid(String(id))) return null;
@@ -31,6 +99,7 @@ class MongoDal {
   }
 
   normalizeId(doc) {
+    const { ObjectId } = MongoDal._getMongoLib();
     if (!doc) return doc;
     if (doc._id instanceof ObjectId) {
       return { ...doc, _id: doc._id.toString() };
