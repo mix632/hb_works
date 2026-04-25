@@ -117,6 +117,14 @@ class MongoDal {
     return Array.isArray(docs) ? docs.map(doc => this.normalizeId(doc)) : [];
   }
 
+  _sanitizePersistModel(model) {
+    const payload = { ...model };
+    if (this.primaryKey === '_id' && Object.prototype.hasOwnProperty.call(payload, 'id') && payload.id === payload._id) {
+      delete payload.id;
+    }
+    return payload;
+  }
+
   formatModel(model) {
     return model;
   }
@@ -178,16 +186,24 @@ class MongoDal {
     const clauses = [];
 
     if (id != null && id !== '') {
-      clauses.push({ [this.primaryKey]: id });
-      if (this.primaryKey !== '_id') {
+      if (this.primaryKey === '_id') {
+        const objectId = this.toObjectId(id);
+        if (!objectId) return {};
+        clauses.push({ _id: objectId });
+      } else {
+        clauses.push({ [this.primaryKey]: id });
         const objectId = this.toObjectId(id);
         if (objectId) clauses.push({ _id: objectId });
       }
     }
 
     if (ids && Array.isArray(ids) && ids.length) {
-      clauses.push({ [this.primaryKey]: { $in: ids } });
-      if (this.primaryKey !== '_id') {
+      if (this.primaryKey === '_id') {
+        const objectIds = ids.map(item => this.toObjectId(item)).filter(Boolean);
+        if (!objectIds.length) return {};
+        clauses.push({ _id: { $in: objectIds } });
+      } else {
+        clauses.push({ [this.primaryKey]: { $in: ids } });
         const objectIds = ids.map(item => this.toObjectId(item)).filter(Boolean);
         if (objectIds.length) clauses.push({ _id: { $in: objectIds } });
       }
@@ -221,7 +237,7 @@ class MongoDal {
   async insertOne({ model = {} } = {}) {
     const collection = await this._getCollection();
     const now = new Date();
-    const payload = { ...model };
+    const payload = this._sanitizePersistModel(model);
     if (this.createDate && !payload[this.createDate]) payload[this.createDate] = now;
     if (this.updateDate) payload[this.updateDate] = now;
     if (this.deleteKey && payload[this.deleteKey] == null) payload[this.deleteKey] = false;
@@ -235,7 +251,7 @@ class MongoDal {
     if (!Object.keys(finalFilter).length) {
       throw new Error('updateOne requires id or filter');
     }
-    const payload = { ...values };
+    const payload = this._sanitizePersistModel(values);
     if (this.updateDate) payload[this.updateDate] = new Date();
     delete payload._id;
     const result = await collection.updateOne(finalFilter, { $set: payload });
@@ -328,25 +344,26 @@ class MongoDal {
     const normalized = this.modelType && typeof this.modelType.CopyData === 'function'
       ? this.modelType.CopyData(model)
       : { ...model };
-    const id = this.GetModelID({ model: normalized });
+    const persistModel = this._sanitizePersistModel(normalized);
+    const id = this.GetModelID({ model: persistModel });
 
     if (this.IDIsEmpty(id)) {
-      this.AddOrUpdate_SetCreateCode({ model: normalized, userId, db });
-      this.AddOrUpdate_SetUpdateCode({ model: normalized, userId, db });
-      const insertedId = await this.insertOne({ model: normalized });
-      return this.IDIsEmpty(this.GetModelID({ model: normalized })) ? insertedId : this.GetModelID({ model: normalized });
+      this.AddOrUpdate_SetCreateCode({ model: persistModel, userId, db });
+      this.AddOrUpdate_SetUpdateCode({ model: persistModel, userId, db });
+      const insertedId = await this.insertOne({ model: persistModel });
+      return this.IDIsEmpty(this.GetModelID({ model: persistModel })) ? insertedId : this.GetModelID({ model: persistModel });
     }
 
     const exist = await this.Get({ id, isAll: true });
     if (!exist) {
-      this.AddOrUpdate_SetCreateCode({ model: normalized, userId, db });
-      this.AddOrUpdate_SetUpdateCode({ model: normalized, userId, db });
-      await this.insertOne({ model: normalized });
-      return this.GetModelID({ model: normalized });
+      this.AddOrUpdate_SetCreateCode({ model: persistModel, userId, db });
+      this.AddOrUpdate_SetUpdateCode({ model: persistModel, userId, db });
+      await this.insertOne({ model: persistModel });
+      return this.GetModelID({ model: persistModel });
     }
 
-    const toSave = { ...exist, ...normalized };
-    if (this.createDate && exist[this.createDate] && !normalized[this.createDate]) {
+    const toSave = this._sanitizePersistModel({ ...exist, ...persistModel });
+    if (this.createDate && exist[this.createDate] && !persistModel[this.createDate]) {
       toSave[this.createDate] = exist[this.createDate];
     }
     this.AddOrUpdate_SetUpdateCode({ model: toSave, userId, db });

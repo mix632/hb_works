@@ -1,6 +1,5 @@
 'use strict';
 
-const { randomUUID } = require('crypto');
 const MongoDal = require('../../../core/mongoDal');
 const model = require('../model/mb_test.model');
 
@@ -10,7 +9,7 @@ function escapeRegExp(str) {
 
 class MbTestRepo extends MongoDal {
   constructor() {
-    super({ collectionName: 'mb_test', primaryKey: 'id', deleteKey: '' });
+    super({ collectionName: 'mb_test', primaryKey: '_id', deleteKey: 'deleted' });
     this.modelType = model;
     this.tableTitle = 'Mongo 测试';
     this.createDate = 'create_at';
@@ -19,15 +18,21 @@ class MbTestRepo extends MongoDal {
   }
 
   GetSearchFilter({ searchModel = {} } = {}) {
-    const filter = { deleted: false };
+    const filter = {};
     if (searchModel.Keyword && String(searchModel.Keyword).trim()) {
       filter.title = { $regex: escapeRegExp(String(searchModel.Keyword).trim()), $options: 'i' };
     }
     if (searchModel.id) {
-      filter.id = String(searchModel.id);
+      const objectId = this.toObjectId(searchModel.id);
+      if (objectId) {
+        filter._id = objectId;
+      }
     }
     if (searchModel.ids && Array.isArray(searchModel.ids) && searchModel.ids.length) {
-      filter.id = { $in: searchModel.ids.map(e => String(e)) };
+      const objectIds = searchModel.ids.map(e => this.toObjectId(e)).filter(Boolean);
+      if (objectIds.length) {
+        filter._id = { $in: objectIds };
+      }
     }
     if (searchModel.title && String(searchModel.title).trim()) {
       filter.title = { $regex: escapeRegExp(String(searchModel.title).trim()), $options: 'i' };
@@ -36,13 +41,6 @@ class MbTestRepo extends MongoDal {
       filter.age = parseInt(searchModel.age, 10) || 0;
     }
     return filter;
-  }
-
-  AddOrUpdate_SetCreateCode({ model }) {
-    super.AddOrUpdate_SetCreateCode({ model });
-    if (!model.id) {
-      model.id = randomUUID();
-    }
   }
 }
 

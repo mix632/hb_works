@@ -39,13 +39,13 @@ class MbTestService extends BaseService {
     if (!params.model) return R({ succeed: false, msg: '传入参数有误' });
 
     const m = this._dtoFilter(params.model, 'save');
-    m.id = await this.myService.AddOrUpdate({ model: m });
-    const newModel = await this.myService.Get({ id: m.id });
+    const savedId = await this.myService.AddOrUpdate({ model: m });
+    const newModel = await this.myService.Get({ id: savedId });
 
     return R({
-      succeed: !this.myService.IDIsEmpty(m.id),
-      msg: !this.myService.IDIsEmpty(m.id) ? '保存成功' : '保存失败',
-      data: m.id,
+      succeed: !this.myService.IDIsEmpty(savedId),
+      msg: !this.myService.IDIsEmpty(savedId) ? '保存成功' : '保存失败',
+      data: savedId,
       data1: newModel ? this._dtoFilter(this._datesToString(newModel), 'detail') : null,
     });
   }

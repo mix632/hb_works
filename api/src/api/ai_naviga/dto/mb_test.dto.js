@@ -8,6 +8,6 @@ module.exports = {
     'id', 'title', 'age', 'create_at',
   ],
   save: [
-    'id', 'title', 'age',
+    '_id', 'id', 'title', 'age',
   ],
 };
