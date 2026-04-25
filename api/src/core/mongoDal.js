@@ -174,14 +174,33 @@ class MongoDal {
     return {};
   }
 
+  _buildPrimaryFilter({ id, ids } = {}) {
+    const clauses = [];
+
+    if (id != null && id !== '') {
+      clauses.push({ [this.primaryKey]: id });
+      if (this.primaryKey !== '_id') {
+        const objectId = this.toObjectId(id);
+        if (objectId) clauses.push({ _id: objectId });
+      }
+    }
+
+    if (ids && Array.isArray(ids) && ids.length) {
+      clauses.push({ [this.primaryKey]: { $in: ids } });
+      if (this.primaryKey !== '_id') {
+        const objectIds = ids.map(item => this.toObjectId(item)).filter(Boolean);
+        if (objectIds.length) clauses.push({ _id: { $in: objectIds } });
+      }
+    }
+
+    if (!clauses.length) return {};
+    if (clauses.length === 1) return clauses[0];
+    return { $or: clauses };
+  }
+
   async findOne({ id, filter = {}, options = {} } = {}) {
     const collection = await this._getCollection();
-    const finalFilter = { ...filter };
-    if (id != null && id !== '') {
-      const objectId = this.toObjectId(id);
-      if (!objectId) return null;
-      finalFilter[this.primaryKey] = objectId;
-    }
+    const finalFilter = { ...filter, ...this._buildPrimaryFilter({ id }) };
     const doc = await collection.findOne(finalFilter, options);
     return this.normalizeId(doc);
   }
@@ -212,12 +231,7 @@ class MongoDal {
 
   async updateOne({ id, values = {}, filter = {} } = {}) {
     const collection = await this._getCollection();
-    const finalFilter = { ...filter };
-    if (id != null && id !== '') {
-      const objectId = this.toObjectId(id);
-      if (!objectId) return 0;
-      finalFilter[this.primaryKey] = objectId;
-    }
+    const finalFilter = { ...filter, ...this._buildPrimaryFilter({ id }) };
     if (!Object.keys(finalFilter).length) {
       throw new Error('updateOne requires id or filter');
     }
@@ -230,12 +244,7 @@ class MongoDal {
 
   async deleteOne({ id, filter = {}, hardDelete = false } = {}) {
     const collection = await this._getCollection();
-    const finalFilter = { ...filter };
-    if (id != null && id !== '') {
-      const objectId = this.toObjectId(id);
-      if (!objectId) return 0;
-      finalFilter[this.primaryKey] = objectId;
-    }
+    const finalFilter = { ...filter, ...this._buildPrimaryFilter({ id }) };
     if (!Object.keys(finalFilter).length) {
       throw new Error('deleteOne requires id or filter');
     }
@@ -261,7 +270,7 @@ class MongoDal {
     let doc = null;
     const finalFilter = { ...this._baseFilter({ isAll }), ...filter };
     if (id != null && id !== '') {
-      doc = await this.findOne({ filter: { ...finalFilter, [this.primaryKey]: id } });
+      doc = await this.findOne({ id, filter: finalFilter });
     } else if (_id != null && _id !== '') {
       doc = await this.findOne({ id: _id, filter: finalFilter });
     } else if (Object.keys(finalFilter).length) {
@@ -278,7 +287,7 @@ class MongoDal {
 
     const finalFilter = { ...this._baseFilter({ isAll }), ...filter };
     if (ids && Array.isArray(ids) && ids.length) {
-      finalFilter[this.primaryKey] = { $in: ids };
+      Object.assign(finalFilter, this._buildPrimaryFilter({ ids }));
     }
     const docs = await this.find({
       filter: finalFilter,
@@ -354,9 +363,9 @@ class MongoDal {
 
     const finalFilter = { ...filter };
     if (ids && Array.isArray(ids) && ids.length) {
-      finalFilter[this.primaryKey] = { $in: ids };
+      Object.assign(finalFilter, this._buildPrimaryFilter({ ids }));
     } else if (id != null && id !== '') {
-      finalFilter[this.primaryKey] = id;
+      Object.assign(finalFilter, this._buildPrimaryFilter({ id }));
     }
 
     if (!Object.keys(finalFilter).length) {

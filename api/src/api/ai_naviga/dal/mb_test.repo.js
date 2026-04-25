@@ -9,7 +9,7 @@ function escapeRegExp(str) {
 
 class MbTestRepo extends MongoDal {
   constructor() {
-    super({ collectionName: 'mb_test', primaryKey: 'id', deleteKey: 'deleted' });
+    super({ collectionName: 'mb_test', primaryKey: 'id', deleteKey: '' });
     this.modelType = model;
     this.tableTitle = 'Mongo 测试';
     this.createDate = 'create_at';
