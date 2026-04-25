@@ -2,13 +2,13 @@
 
 const BaseService = require('../../../core/baseService');
 const { R } = require('../../../core/errors');
-const repo = require('../dal/mb_test.repo');
-const model = require('../model/mb_test.model');
-const dto = require('../dto/mb_test.dto');
+const repo = require('../dal/click.repo');
+const model = require('../model/click.model');
+const dto = require('../dto/click.dto');
 
-class MbTestService extends BaseService {
+class ClickService extends BaseService {
   constructor() {
-    super({ service: repo, model, prefix: '/ai_naviga/mb_test', dto });
+    super({ service: repo, model, prefix: '/ai_naviga/click', dto });
   }
 
   registerRoutes(app) {
@@ -71,6 +71,7 @@ class MbTestService extends BaseService {
         filter,
         pageIndex: data.data.PageIndex - 1,
         onePageCount: data.data.OnePageCount,
+        sort: { time: -1, _id: -1 },
       }),
       this.myService.Count({ filter }),
     ]);
@@ -81,4 +82,4 @@ class MbTestService extends BaseService {
   }
 }
 
-module.exports = new MbTestService();
+module.exports = new ClickService();
