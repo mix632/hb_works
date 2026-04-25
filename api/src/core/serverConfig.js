@@ -1,6 +1,7 @@
 'use strict';
 
 const Sequelize = require('sequelize');
+const { MongoClient } = require('mongodb');
 const path = require('path');
 const os = require('os');
 const Redis = require('ioredis');
@@ -43,6 +44,11 @@ class ServerConfig {
       this.redis = new Redis(this.redisConfig);
     }
 
+    this.mongodbConfig = env.mongodb || { isUse: false };
+    this.mongoClient = null;
+    this.mongoDb = null;
+    this._mongoConnectPromise = null;
+
     this.httpPort = env.port;
     this.tokenPrivateKey = env.tokenPrivateKey || 'mamsllsla';
     this.aes = env.aes || { isUse: false };
@@ -54,6 +60,57 @@ class ServerConfig {
     };
     if (cfg.uploadBaseDir) {
       this.upload.fullPath = path.join(cfg.uploadBaseDir, 'upload');
+    }
+  }
+
+  async getMongoClient() {
+    if (!this.mongodbConfig || !this.mongodbConfig.isUse) return null;
+    if (this.mongoClient) return this.mongoClient;
+    if (this._mongoConnectPromise) return this._mongoConnectPromise;
+
+    const options = {
+      maxPoolSize: this.mongodbConfig.maxPoolSize || 10,
+      minPoolSize: this.mongodbConfig.minPoolSize || 1,
+      serverSelectionTimeoutMS: this.mongodbConfig.serverSelectionTimeoutMS || 5000,
+    };
+
+    if (this.mongodbConfig.authSource) {
+      options.authSource = this.mongodbConfig.authSource;
+    }
+
+    const client = new MongoClient(this.mongodbConfig.uri, options);
+    this._mongoConnectPromise = client.connect().then((connectedClient) => {
+      this.mongoClient = connectedClient;
+      this.mongoDb = connectedClient.db(this.mongodbConfig.dbName);
+      this._mongoConnectPromise = null;
+      return connectedClient;
+    }).catch((err) => {
+      this._mongoConnectPromise = null;
+      throw err;
+    });
+
+    return this._mongoConnectPromise;
+  }
+
+  async getMongoDb() {
+    if (!this.mongodbConfig || !this.mongodbConfig.isUse) return null;
+    if (this.mongoDb) return this.mongoDb;
+    await this.getMongoClient();
+    return this.mongoDb;
+  }
+
+  async closeMongo() {
+    if (this._mongoConnectPromise) {
+      try {
+        await this._mongoConnectPromise;
+      } catch (_) {
+        return;
+      }
+    }
+    if (this.mongoClient) {
+      await this.mongoClient.close();
+      this.mongoClient = null;
+      this.mongoDb = null;
     }
   }
 }
