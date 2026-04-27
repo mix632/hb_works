@@ -721,6 +721,20 @@ function mapTopMenuItem(item = {}, index = 0) {
   };
 }
 
+function mapAllNavItem(item = {}, index = 0) {
+  return {
+    id: item.id != null && item.id !== '' ? String(item.id) : `all-nav-${index + 1}`,
+    label: item.title ? String(item.title) : '',
+    title: item.title ? String(item.title) : '',
+    bg: item.bg ? String(item.bg) : '',
+    icon: item.icon ? String(item.icon) : '',
+    image: joinImageUrl(item.image),
+    url: item.url ? String(item.url) : '',
+    hot: !!item.hot,
+    descript: item.descript ? String(item.descript) : '',
+  };
+}
+
 class NavigaHomeService extends BaseService {
   constructor() {
     super({
@@ -833,6 +847,10 @@ class NavigaHomeService extends BaseService {
       const menus = staticData && Array.isArray(staticData.data)
         ? staticData.data.map((item, index) => mapTopMenuItem(item, index))
         : [];
+      const allNavStaticData = await factory.biz_home_staticRepo.Get({
+        strWhere: 'biz_home_static.type = :type and biz_home_static.platform = :platform and biz_home_static.is_new = :is_new',
+        strParams: { type: 'all_nav', platform, is_new: 1 },
+      });
 
       /** Hero 搜索：多引擎 Tab + 占位提示 + 跳转 url + 查询参数名 */
       const searchEngines = [
@@ -876,18 +894,9 @@ class NavigaHomeService extends BaseService {
         { text: 'Figma', hot: false, url: 'https://www.figma.com/' },
       ];
 
-      /** 侧栏「全部网址导航」3×3，每项可跳转 */
-      const allNavPopover = [ 
-        { label: '优设导航', bg: '#22c55e', icon: '导', url: 'https://hao.uisdc.com/' },
-        { label: 'AI导航', bg: '#3b82f6', icon: 'AI', url: 'https://hao.uisdc.com/ai/' },
-        { label: '字体导航', bg: '#f97316', icon: 'Aa', url: 'https://hao.uisdc.com/font/' },
-        { label: '摄影导航', bg: '#8b5cf6', icon: '摄', url: 'https://hao.uisdc.com/photo/' },
-        { label: '插画导航', bg: '#ec4899', icon: '画', url: 'https://hao.uisdc.com/illustration/' },
-        { label: 'PPT导航', bg: '#14b8a6', icon: 'P', url: 'https://hao.uisdc.com/ppt/' },
-        { label: '图标导航', bg: '#eab308', icon: '◇', url: 'https://hao.uisdc.com/icon/' },
-        { label: '配色导航', bg: '#6366f1', icon: '彩', url: 'https://hao.uisdc.com/color/' },
-        { label: '更多导航', bg: '#64748b', icon: '···', url: 'https://hao.uisdc.com/' },
-      ];
+      const allNavPopover = allNavStaticData && Array.isArray(allNavStaticData.data)
+        ? allNavStaticData.data.map((item, index) => mapAllNavItem(item, index))
+        : [];
 
       const data = { menus, allNavPopover, searchEngines, hotSearchTags };
       return R({ succeed: true, msg: '', data: data });
