@@ -42,6 +42,7 @@
 
 const BaseService = require('../../../../core/baseService');
 const { R } = require('../../../../core/errors');
+const config = require('../../../../core/serverConfig');
 const clickRepo = require('../../dal/click.repo');
 
 
@@ -677,6 +678,49 @@ function enrichHomeCategoriesWithHubFeeds(categories) {
   });
 }
 
+function joinImageUrl(image) {
+  const raw = image ? String(image).trim() : '';
+  if (!raw) return '';
+  if (/^https?:\/\//i.test(raw)) return raw;
+  const base = config.currentConfig && config.currentConfig.image_url
+    ? String(config.currentConfig.image_url).trim()
+    : '';
+  if (!base) return raw;
+  return `${base.replace(/\/+$/, '')}/${raw.replace(/^\/+/, '')}`;
+}
+
+function mapTopMenuChild(item = {}, index = 0) {
+  return {
+    id: item.id != null && item.id !== '' ? String(item.id) : `child-${index + 1}`,
+    label: item.title ? String(item.title) : '',
+    title: item.title ? String(item.title) : '',
+    bg: item.bg ? String(item.bg) : '',
+    icon: item.icon ? String(item.icon) : '',
+    image: joinImageUrl(item.image),
+    url: item.url ? String(item.url) : '',
+    hot: !!item.hot,
+    descript: item.descript ? String(item.descript) : '',
+  };
+}
+
+function mapTopMenuItem(item = {}, index = 0) {
+  const children = Array.isArray(item.list) ? item.list.map((child, childIndex) => mapTopMenuChild(child, childIndex)) : [];
+  return {
+    id: item.id != null && item.id !== '' ? String(item.id) : `menu-${index + 1}`,
+    style: children.length ? 'dropdown' : 'link',
+    label: item.title ? String(item.title) : '',
+    title: item.title ? String(item.title) : '',
+    showBadge: !!item.hot,
+    tapKey: item.title ? String(item.title) : '',
+    url: item.url ? String(item.url) : '',
+    icon: item.icon ? String(item.icon) : '',
+    image: joinImageUrl(item.image),
+    hot: !!item.hot,
+    descript: item.descript ? String(item.descript) : '',
+    children,
+  };
+}
+
 class NavigaHomeService extends BaseService {
   constructor() {
     super({
@@ -779,94 +823,16 @@ class NavigaHomeService extends BaseService {
   async pageConfig(req, reply) {
     void reply;
     try {
-      /**
-       * 顶栏中间区：按数组顺序渲染。
-       * dropdown：children 为动态宫格；link：无 children，点击走 url。
-       */
-      const menus = [
-        {
-          id: 'official',
-          style: 'dropdown',
-          label: '优设官网',
-          showBadge: false,
-          tapKey: '官网',
-          url: '',
-          children: [
-            { label: '优设榜单', bg: '#f97316', icon: '榜', url: 'https://www.uisdc.com/' },
-            { label: '优设分层', bg: '#22c55e', icon: '层', url: 'https://www.uisdc.com/' },
-            {
-              label: '细节猎人',
-              bg: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-              icon: '◆',
-              url: 'https://www.uisdc.com/',
-            },
-            { label: '优设读报', bg: '#9333ea', icon: '报', url: 'https://www.uisdc.com/' },
-            { label: '每日一问', bg: '#ea580c', icon: '#', url: 'https://www.uisdc.com/' },
-            { label: '活动大赛', bg: '#38bdf8', icon: '★', url: 'https://www.uisdc.com/' },
-            { label: '设计方法', bg: '#2563eb', icon: 'Ps', url: 'https://www.uisdc.com/' },
-            { label: '设计规范', bg: '#ec4899', icon: '▣', url: 'https://www.uisdc.com/' },
-          ]
-        },
-        {
-          id: 'nav',
-          style: 'dropdown',
-          label: '优设导航',
-          showBadge: true,
-          tapKey: '导航',
-          url: '',
-          children: [
-            { label: '优设榜单', bg: '#f97316', icon: '榜', url: 'https://www.uisdc.com/' },
-            { label: '优设分层', bg: '#22c55e', icon: '层', url: 'https://www.uisdc.com/' },
-            {
-              label: '细节猎人',
-              bg: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-              icon: '◆',
-              url: 'https://www.uisdc.com/',
-            },
-            { label: '优设读报', bg: '#9333ea', icon: '报', url: 'https://www.uisdc.com/' },
-            { label: '每日一问', bg: '#ea580c', icon: '#', url: 'https://www.uisdc.com/' },
-            { label: '活动大赛', bg: '#38bdf8', icon: '★', url: 'https://www.uisdc.com/' },
-            { label: '设计方法', bg: '#2563eb', icon: 'Ps', url: 'https://www.uisdc.com/' },
-            { label: '设计规范', bg: '#ec4899', icon: '▣', url: 'https://www.uisdc.com/' },
-          ]
-        },
-        {
-          id: 'courses',
-          style: 'link',
-          label: '好课推荐',
-          showBadge: false,
-          tapKey: '好课',
-          url: 'https://xue.uisdc.com/',
-          children: [],
-        },
-        {
-          id: 'aigc',
-          style: 'link',
-          label: 'AIGC',
-          showBadge: true,
-          tapKey: 'AIGC',
-          url: 'https://www.uisdc.com/aigc/',
-          children: [],
-        },
-        {
-          id: 'service',
-          style: 'link',
-          label: '设计服务',
-          showBadge: false,
-          tapKey: '服务',
-          url: 'https://www.uisdc.com/',
-          children: [],
-        },
-        {
-          id: 'font',
-          style: 'link',
-          label: '免费字体',
-          showBadge: false,
-          tapKey: '字体',
-          url: 'https://hao.uisdc.com/font/',
-          children: [],
-        },
-      ];
+      const params = this._params(req);
+      const platform = params.platform ? String(params.platform).trim() : 'web';
+      const factory = require('../../factory');
+      const staticData = await factory.biz_home_staticRepo.Get({
+        strWhere: 'biz_home_static.type = :type and biz_home_static.platform = :platform and biz_home_static.is_new = :is_new',
+        strParams: { type: 'top_menu', platform, is_new: 1 },
+      });
+      const menus = staticData && Array.isArray(staticData.data)
+        ? staticData.data.map((item, index) => mapTopMenuItem(item, index))
+        : [];
 
       /** Hero 搜索：多引擎 Tab + 占位提示 + 跳转 url + 查询参数名 */
       const searchEngines = [
