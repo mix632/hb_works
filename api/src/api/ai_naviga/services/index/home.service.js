@@ -735,6 +735,30 @@ function mapAllNavItem(item = {}, index = 0) {
   };
 }
 
+function mapSearchEngineItem(item = {}, index = 0) {
+  const placeholders = Array.isArray(item.placeholders)
+    ? item.placeholders.map(text => String(text))
+    : (item.placeholder ? [String(item.placeholder)] : []);
+  return {
+    id: item.id != null && item.id !== '' ? String(item.id) : `search-engine-${index + 1}`,
+    name: item.name ? String(item.name) : (item.title ? String(item.title) : ''),
+    placeholders,
+    url: item.url ? String(item.url) : '',
+    queryKey: item.queryKey ? String(item.queryKey) : (item.query_key ? String(item.query_key) : ''),
+    buttonText: item.buttonText ? String(item.buttonText) : (item.button_text ? String(item.button_text) : ''),
+  };
+}
+
+function mapHotSearchTagItem(item = {}, index = 0) {
+  return {
+    id: item.id != null && item.id !== '' ? String(item.id) : `hot-search-${index + 1}`,
+    text: item.text ? String(item.text) : (item.title ? String(item.title) : ''),
+    hot: !!item.hot,
+    highlight: !!item.highlight,
+    url: item.url ? String(item.url) : '',
+  };
+}
+
 class NavigaHomeService extends BaseService {
   constructor() {
     super({
@@ -851,48 +875,22 @@ class NavigaHomeService extends BaseService {
         strWhere: 'biz_home_static.type = :type and biz_home_static.platform = :platform and biz_home_static.is_new = :is_new',
         strParams: { type: 'all_nav', platform, is_new: 1 },
       });
+      const searchEngineStaticData = await factory.biz_home_staticRepo.Get({
+        strWhere: 'biz_home_static.type = :type and biz_home_static.platform = :platform and biz_home_static.is_new = :is_new',
+        strParams: { type: 'search_engine', platform, is_new: 1 },
+      });
+      const hotSearchStaticData = await factory.biz_home_staticRepo.Get({
+        strWhere: 'biz_home_static.type = :type and biz_home_static.platform = :platform and biz_home_static.is_new = :is_new',
+        strParams: { type: 'hot_search', platform, is_new: 1 },
+      });
 
-      /** Hero 搜索：多引擎 Tab + 占位提示 + 跳转 url + 查询参数名 */
-      const searchEngines = [
-        {
-          id: 'baidu',
-          name: '百度',
-          placeholders: ['百度一下，你就知道', '输入关键词搜索'],
-          url: 'https://www.baidu.com/s',
-          queryKey: 'wd',
-          buttonText: '百度一下',
-        },
-        {
-          id: 'bing',
-          name: '必应',
-          placeholders: ['搜教程、文章、资源', '优设网站内搜索'],
-          url: 'https://www.bing.com/search',
-          queryKey: 'q',
-        },
-        {
-          id: 'google',
-          name: 'Google',
-          placeholders: ['Search the web', '输入英文或中文关键词'],
-          url: 'https://www.google.com/search',
-          queryKey: 'q',
-          buttonText: 'Google',
-        },
-      ];
+      const searchEngines = searchEngineStaticData && Array.isArray(searchEngineStaticData.data)
+        ? searchEngineStaticData.data.map((item, index) => mapSearchEngineItem(item, index))
+        : [];
 
-      /** Hero 热搜榜：点击 url 新窗口打开 */
-      const hotSearchTags = [
-        {
-          text: '最新AI课程',
-          hot: true,
-          highlight: true,
-          url: 'https://www.uisdc.com/aigc/',
-        },
-        { text: 'OpenClaw', hot: true, url: 'https://www.google.com/search?q=OpenClaw' },
-        { text: 'Nano Banana', hot: true, url: 'https://www.google.com/search?q=Nano+Banana' },
-        { text: '即梦', hot: false, url: 'https://jimeng.jianying.com/' },
-        { text: 'AIGC', hot: false, url: 'https://www.uisdc.com/aigc/' },
-        { text: 'Figma', hot: false, url: 'https://www.figma.com/' },
-      ];
+      const hotSearchTags = hotSearchStaticData && Array.isArray(hotSearchStaticData.data)
+        ? hotSearchStaticData.data.map((item, index) => mapHotSearchTagItem(item, index))
+        : [];
 
       const allNavPopover = allNavStaticData && Array.isArray(allNavStaticData.data)
         ? allNavStaticData.data.map((item, index) => mapAllNavItem(item, index))
