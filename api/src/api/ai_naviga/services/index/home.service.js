@@ -824,7 +824,7 @@ class NavigaHomeService extends BaseService {
     void reply;
     try {
       const params = this._params(req);
-      const platform = params.platform ? String(params.platform).trim() : 'web';
+      const platform = params.platform ? String(params.platform).trim() : '';
       const factory = require('../../factory');
       const staticData = await factory.biz_home_staticRepo.Get({
         strWhere: 'biz_home_static.type = :type and biz_home_static.platform = :platform and biz_home_static.is_new = :is_new',

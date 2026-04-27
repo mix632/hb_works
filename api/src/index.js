@@ -28,7 +28,7 @@ async function start() {
     origin: true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'istoken', 'repeatsubmit', 'repeatSubmit'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'istoken', 'repeatsubmit', 'repeatSubmit', 'platform'],
     maxAge: 86400,
   });
   await app.register(require('@fastify/formbody'));

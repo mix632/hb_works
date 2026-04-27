@@ -90,6 +90,13 @@ class BaseService {
       p.userId = 0;
     }
     p.isAdmin = !!req.isAdmin;
+
+
+    //自定义header参数
+    if (req.headers?.platform) {
+      p.platform = req.headers.platform;
+    }
+
     return p;
   }
 
