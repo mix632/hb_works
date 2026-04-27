@@ -181,6 +181,7 @@ class HomeService extends BaseService {
         icon: item.icon || '',
         url: item.url || '',
         hot: !!item.is_hot,
+        show_type: item.show_type
       };
     }
     return parents.map((parent) => {

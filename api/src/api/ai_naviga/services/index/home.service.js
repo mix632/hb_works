@@ -776,7 +776,7 @@ function mapHomeCategoryItem(item = {}, index = 0) {
     id: item.id != null && item.id !== '' ? String(item.id) : `home-category-${index + 1}`,
     name: item.name ? String(item.name) : (item.title ? String(item.title) : ''),
     icon: item.icon ? String(item.icon) : '',
-    displayType: item.displayType != null ? parseInt(item.displayType, 10) || 1 : (item.display_type != null ? parseInt(item.display_type, 10) || 1 : 1),
+    displayType: item.show_type != null ? parseInt(item.show_type, 10) || 1 : (item.display_type != null ? parseInt(item.display_type, 10) || 1 : 1),
     list: Array.isArray(item.list) ? item.list.map((child, childIndex) => mapHomeCategoryListItem(child, childIndex)) : [],
   };
 }
@@ -793,7 +793,6 @@ class NavigaHomeService extends BaseService {
 
   registerRoutes(app) {
     const p = this.prefix;
-    app.get(`${p}/bootstrap`, { config: { noAuth: true } }, (req, reply) => this.bootstrap(req, reply));
     app.get(`${p}/page-config`, { config: { noAuth: true } }, (req, reply) => this.pageConfig(req, reply));
     app.get(`${p}/home-categories`, { config: { noAuth: true } }, (req, reply) => this.homeCategories(req, reply));
     app.get(`${p}/hub-article`, { config: { noAuth: true } }, (req, reply) => this.hubArticle(req, reply));
