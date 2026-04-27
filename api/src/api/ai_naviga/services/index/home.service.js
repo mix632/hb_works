@@ -759,6 +759,28 @@ function mapHotSearchTagItem(item = {}, index = 0) {
   };
 }
 
+function mapHomeCategoryListItem(item = {}, index = 0) {
+  return {
+    id: item.id != null && item.id !== '' ? String(item.id) : `home-item-${index + 1}`,
+    name: item.name ? String(item.name) : (item.title ? String(item.title) : ''),
+    image: joinImageUrl(item.image),
+    desc: item.desc ? String(item.desc) : (item.descript ? String(item.descript) : ''),
+    color: item.color ? String(item.color) : '',
+    url: item.url ? String(item.url) : '',
+    hot: !!item.hot,
+  };
+}
+
+function mapHomeCategoryItem(item = {}, index = 0) {
+  return {
+    id: item.id != null && item.id !== '' ? String(item.id) : `home-category-${index + 1}`,
+    name: item.name ? String(item.name) : (item.title ? String(item.title) : ''),
+    icon: item.icon ? String(item.icon) : '',
+    displayType: item.displayType != null ? parseInt(item.displayType, 10) || 1 : (item.display_type != null ? parseInt(item.display_type, 10) || 1 : 1),
+    list: Array.isArray(item.list) ? item.list.map((child, childIndex) => mapHomeCategoryListItem(child, childIndex)) : [],
+  };
+}
+
 class NavigaHomeService extends BaseService {
   constructor() {
     super({
@@ -819,7 +841,17 @@ class NavigaHomeService extends BaseService {
   async homeCategories(req, reply) {
     void reply;
     try {
-      const colored = enrichHomeCategoriesListColors(buildHomeCategoriesPayload());
+      const params = this._params(req);
+      const platform = params.platform ? String(params.platform).trim() : '';
+      const factory = require('../../factory');
+      const staticData = await factory.biz_home_staticRepo.Get({
+        strWhere: 'biz_home_static.type = :type and biz_home_static.platform = :platform and biz_home_static.is_new = :is_new',
+        strParams: { type: 'home', platform, is_new: 1 },
+      });
+      const baseCategories = staticData && Array.isArray(staticData.data)
+        ? staticData.data.map((item, index) => mapHomeCategoryItem(item, index))
+        : [];
+      const colored = enrichHomeCategoriesListColors(baseCategories);
       const categories = enrichHomeCategoriesWithHubFeeds(colored);
       return R({ succeed: true, msg: '', data: { categories } });
     } catch (err) {
