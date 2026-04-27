@@ -22,7 +22,7 @@ async function authPlugin(app, opts) {
 
   app.addHook('onRequest', async (req, reply) => {
     const authHeader = req.headers.authorization;
-    const noAuthByRoute = req.routeOptions?.config?.noAuth === true || req.context?.config?.noAuth === true;
+    const noAuthByRoute = req.routeOptions?.config?.noAuth === true;
     if (noAuthByRoute || isWhitelisted(req.url)) return;
 
     if (!authHeader) {
