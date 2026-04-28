@@ -781,6 +781,22 @@ function mapHotSearchTagItem(item = {}) {
   };
 }
 
+function mapRightBannerItem(item = {}) {
+  const normalized = normalizeStaticItem(item, {
+    titleKeys: ['title', 'name'],
+  });
+  return {
+    id: normalized.id,
+    title: normalized.title,
+    image: normalized.image,
+    url: normalized.url,
+    hot: normalized.hot,
+    descript: normalized.descript,
+    icon: normalized.icon,
+    bg: normalized.bg,
+  };
+}
+
 function mapHomeCategoryListItem(item = {}) {
   const normalized = normalizeStaticItem(item, {
     titleKeys: ['name', 'title'],
@@ -921,6 +937,7 @@ class NavigaHomeService extends BaseService {
         msg: '',
         data: {
           id: categoryId,
+          displayType: category ? category.displayType : 1,
           items: category ? (category.list || []) : [],
         },
       });
@@ -991,19 +1008,21 @@ class NavigaHomeService extends BaseService {
     try {
       const params = this._params(req);
       const platform = params.platform ? String(params.platform).trim() : '';
-      const [topMenuData, allNavData, searchEngineData, hotSearchData] = await Promise.all([
+      const [topMenuData, allNavData, searchEngineData, hotSearchData, rightBannerData] = await Promise.all([
         this.getStaticBlock({ type: 'top_menu', platform, userId: params.userId }),
         this.getStaticBlock({ type: 'all_nav', platform, userId: params.userId }),
         this.getStaticBlock({ type: 'search_engine', platform, userId: params.userId }),
         this.getStaticBlock({ type: 'hot_search', platform, userId: params.userId }),
+        this.getStaticBlock({ type: 'right_banner', platform, userId: params.userId }),
       ]);
 
       const menus = topMenuData.map((item) => mapMenuItem(item));
       const searchEngines = searchEngineData.map((item) => mapSearchEngineItem(item));
       const hotSearchTags = hotSearchData.map((item) => mapHotSearchTagItem(item));
       const allNavPopover = allNavData.map((item) => mapNavItem(item));
+      const rightBanner = rightBannerData.map((item) => mapRightBannerItem(item));
 
-      const data = { menus, allNavPopover, searchEngines, hotSearchTags };
+      const data = { menus, allNavPopover, searchEngines, hotSearchTags, rightBanner };
       return R({ succeed: true, msg: '', data: data });
     } catch (err) {
       return R({ succeed: false, msg: err.message || '加载页面配置失败', data: null });

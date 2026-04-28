@@ -283,7 +283,7 @@ class HomeService extends BaseService {
         userId: params.userId,
         spId: params.spId,
       };
-      let succeed = await this.saveImpl(params2, db, true);
+      let succeed = await this._saveImpl(params2, db, true);
       if (!succeed.succeed) {
         return succeed;
       }
