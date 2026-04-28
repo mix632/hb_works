@@ -773,7 +773,7 @@ function mapHomeCategoryListItem(item = {}, index = 0) {
 
 function mapHomeCategoryItem(item = {}, index = 0) {
   return {
-    id: item.id != null && item.id !== '' ? String(item.id) : `home-category-${index + 1}`,
+    id: item.id,
     name: item.name ? String(item.name) : (item.title ? String(item.title) : ''),
     icon: item.icon ? String(item.icon) : '',
     displayType: item.show_type != null ? parseInt(item.show_type, 10) || 1 : (item.display_type != null ? parseInt(item.display_type, 10) || 1 : 1),

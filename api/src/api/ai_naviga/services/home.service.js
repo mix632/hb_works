@@ -173,8 +173,8 @@ class HomeService extends BaseService {
       return v;
     }
     let _toStaticRow = (item) => {
-      // 发布结构统一裁剪为静态消费字段
       return {
+        id: item.id,
         title: item.title || '',
         descript: item.descript || '',
         image: _normalizeImage(item.image),
