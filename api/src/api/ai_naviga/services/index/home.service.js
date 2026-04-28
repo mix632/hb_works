@@ -691,7 +691,7 @@ function joinImageUrl(image) {
 
 function mapTopMenuChild(item = {}, index = 0) {
   return {
-    id: item.id != null && item.id !== '' ? String(item.id) : `child-${index + 1}`,
+    id: item.id,
     label: item.title ? String(item.title) : '',
     title: item.title ? String(item.title) : '',
     bg: item.bg ? String(item.bg) : '',
@@ -706,7 +706,7 @@ function mapTopMenuChild(item = {}, index = 0) {
 function mapTopMenuItem(item = {}, index = 0) {
   const children = Array.isArray(item.list) ? item.list.map((child, childIndex) => mapTopMenuChild(child, childIndex)) : [];
   return {
-    id: item.id != null && item.id !== '' ? String(item.id) : `menu-${index + 1}`,
+    id: item.id,
     style: children.length ? 'dropdown' : 'link',
     label: item.title ? String(item.title) : '',
     title: item.title ? String(item.title) : '',
@@ -723,7 +723,7 @@ function mapTopMenuItem(item = {}, index = 0) {
 
 function mapAllNavItem(item = {}, index = 0) {
   return {
-    id: item.id != null && item.id !== '' ? String(item.id) : `all-nav-${index + 1}`,
+    id: item.id,
     label: item.title ? String(item.title) : '',
     title: item.title ? String(item.title) : '',
     bg: item.bg ? String(item.bg) : '',
@@ -740,7 +740,7 @@ function mapSearchEngineItem(item = {}, index = 0) {
     ? item.placeholders.map(text => String(text))
     : (item.placeholder ? [String(item.placeholder)] : []);
   return {
-    id: item.id != null && item.id !== '' ? String(item.id) : `search-engine-${index + 1}`,
+    id: item.id,
     name: item.name ? String(item.name) : (item.title ? String(item.title) : ''),
     placeholders,
     url: item.url ? String(item.url) : '',
@@ -751,7 +751,7 @@ function mapSearchEngineItem(item = {}, index = 0) {
 
 function mapHotSearchTagItem(item = {}, index = 0) {
   return {
-    id: item.id != null && item.id !== '' ? String(item.id) : `hot-search-${index + 1}`,
+    id: item.id,
     text: item.text ? String(item.text) : (item.title ? String(item.title) : ''),
     hot: !!item.hot,
     highlight: !!item.highlight,
@@ -761,7 +761,7 @@ function mapHotSearchTagItem(item = {}, index = 0) {
 
 function mapHomeCategoryListItem(item = {}, index = 0) {
   return {
-    id: item.id != null && item.id !== '' ? String(item.id) : `home-item-${index + 1}`,
+    id: item.id != null,
     name: item.name ? String(item.name) : (item.title ? String(item.title) : ''),
     image: joinImageUrl(item.image),
     desc: item.desc ? String(item.desc) : (item.descript ? String(item.descript) : ''),
