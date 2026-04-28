@@ -689,95 +689,125 @@ function joinImageUrl(image) {
   return `${base.replace(/\/+$/, '')}/${raw.replace(/^\/+/, '')}`;
 }
 
-function mapTopMenuChild(item = {}, index = 0) {
+function pickFirstString(item, keys = []) {
+  for (const key of keys) {
+    if (item[key] != null && item[key] !== '') return String(item[key]);
+  }
+  return '';
+}
+
+function normalizeStaticItem(item = {}, {
+  titleKeys = ['title', 'name', 'text'],
+  descKeys = ['descript', 'desc'],
+  iconResolver = (value) => (value ? String(value) : ''),
+  imageResolver = (value) => joinImageUrl(value),
+} = {}) {
   return {
-    id: item.id,
-    label: item.title ? String(item.title) : '',
-    title: item.title ? String(item.title) : '',
+    id: item.id != null ? item.id : 0,
+    title: pickFirstString(item, titleKeys),
+    descript: pickFirstString(item, descKeys),
     bg: item.bg ? String(item.bg) : '',
-    icon: item.icon ? String(item.icon) : '',
-    image: joinImageUrl(item.image),
+    icon: iconResolver(item.icon),
+    image: imageResolver(item.image),
     url: item.url ? String(item.url) : '',
     hot: !!item.hot,
-    descript: item.descript ? String(item.descript) : '',
+    highlight: !!item.highlight,
   };
 }
 
-function mapTopMenuItem(item = {}, index = 0) {
-  const children = Array.isArray(item.list) ? item.list.map((child, childIndex) => mapTopMenuChild(child, childIndex)) : [];
+function mapNavItem(item = {}) {
+  const normalized = normalizeStaticItem(item);
   return {
-    id: item.id,
+    id: normalized.id,
+    label: normalized.title,
+    title: normalized.title,
+    bg: normalized.bg,
+    icon: normalized.icon,
+    image: normalized.image,
+    url: normalized.url,
+    hot: normalized.hot,
+    descript: normalized.descript,
+  };
+}
+
+function mapMenuItem(item = {}) {
+  const normalized = normalizeStaticItem(item);
+  const children = Array.isArray(item.list) ? item.list.map((child) => mapNavItem(child)) : [];
+  return {
+    id: normalized.id,
     style: children.length ? 'dropdown' : 'link',
-    label: item.title ? String(item.title) : '',
-    title: item.title ? String(item.title) : '',
-    showBadge: !!item.hot,
-    tapKey: item.title ? String(item.title) : '',
-    url: item.url ? String(item.url) : '',
-    icon: item.icon ? String(item.icon) : '',
-    image: joinImageUrl(item.image),
-    hot: !!item.hot,
-    descript: item.descript ? String(item.descript) : '',
+    label: normalized.title,
+    title: normalized.title,
+    showBadge: normalized.hot,
+    tapKey: normalized.title,
+    url: normalized.url,
+    icon: normalized.icon,
+    image: normalized.image,
+    hot: normalized.hot,
+    descript: normalized.descript,
     children,
   };
 }
 
-function mapAllNavItem(item = {}, index = 0) {
-  return {
-    id: item.id,
-    label: item.title ? String(item.title) : '',
-    title: item.title ? String(item.title) : '',
-    bg: item.bg ? String(item.bg) : '',
-    icon: item.icon ? String(item.icon) : '',
-    image: joinImageUrl(item.image),
-    url: item.url ? String(item.url) : '',
-    hot: !!item.hot,
-    descript: item.descript ? String(item.descript) : '',
-  };
-}
-
-function mapSearchEngineItem(item = {}, index = 0) {
+function mapSearchEngineItem(item = {}) {
+  const normalized = normalizeStaticItem(item, {
+    titleKeys: ['name', 'title'],
+    imageResolver: () => '',
+  });
   const placeholders = Array.isArray(item.placeholders)
     ? item.placeholders.map(text => String(text))
     : (item.placeholder ? [String(item.placeholder)] : []);
   return {
-    id: item.id,
-    name: item.name ? String(item.name) : (item.title ? String(item.title) : ''),
+    id: normalized.id,
+    name: normalized.title,
     placeholders,
-    url: item.url ? String(item.url) : '',
+    url: normalized.url,
     queryKey: item.queryKey ? String(item.queryKey) : (item.query_key ? String(item.query_key) : ''),
     buttonText: item.buttonText ? String(item.buttonText) : (item.button_text ? String(item.button_text) : ''),
   };
 }
 
-function mapHotSearchTagItem(item = {}, index = 0) {
+function mapHotSearchTagItem(item = {}) {
+  const normalized = normalizeStaticItem(item, {
+    titleKeys: ['text', 'title'],
+    imageResolver: () => '',
+  });
   return {
-    id: item.id,
-    text: item.text ? String(item.text) : (item.title ? String(item.title) : ''),
-    hot: !!item.hot,
-    highlight: !!item.highlight,
-    url: item.url ? String(item.url) : '',
+    id: normalized.id,
+    text: normalized.title,
+    hot: normalized.hot,
+    highlight: normalized.highlight,
+    url: normalized.url,
   };
 }
 
-function mapHomeCategoryListItem(item = {}, index = 0) {
+function mapHomeCategoryListItem(item = {}) {
+  const normalized = normalizeStaticItem(item, {
+    titleKeys: ['name', 'title'],
+    descKeys: ['desc', 'descript'],
+  });
   return {
-    id: item.id != null,
-    name: item.name ? String(item.name) : (item.title ? String(item.title) : ''),
-    image: joinImageUrl(item.image),
-    desc: item.desc ? String(item.desc) : (item.descript ? String(item.descript) : ''),
+    id: normalized.id,
+    name: normalized.title,
+    image: normalized.image,
+    desc: normalized.descript,
     color: item.color ? String(item.color) : '',
-    url: item.url ? String(item.url) : '',
-    hot: !!item.hot,
+    url: normalized.url,
+    hot: normalized.hot,
   };
 }
 
-function mapHomeCategoryItem(item = {}, index = 0) {
+function mapHomeCategoryItem(item = {}) {
+  const normalized = normalizeStaticItem(item, {
+    titleKeys: ['name', 'title'],
+    imageResolver: () => '',
+  });
   return {
-    id: item.id,
-    name: item.name ? String(item.name) : (item.title ? String(item.title) : ''),
-    icon: item.icon ? String(item.icon) : '',
+    id: normalized.id,
+    name: normalized.title,
+    icon: normalized.icon,
     displayType: item.show_type != null ? parseInt(item.show_type, 10) || 1 : (item.display_type != null ? parseInt(item.display_type, 10) || 1 : 1),
-    list: Array.isArray(item.list) ? item.list.map((child, childIndex) => mapHomeCategoryListItem(child, childIndex)) : [],
+    list: Array.isArray(item.list) ? item.list.map((child) => mapHomeCategoryListItem(child)) : [],
   };
 }
 
@@ -791,10 +821,25 @@ class NavigaHomeService extends BaseService {
     });
   }
 
+  get factory() {
+    return require('../../factory');
+  }
+
+  async getStaticBlock({ type, platform, userId = 0 }) {
+    const block = await this.factory.biz_home_staticRepo.Get({
+      strWhere: 'biz_home_static.type = :type and biz_home_static.platform = :platform and biz_home_static.is_new = :is_new',
+      strParams: { type, platform, is_new: 1 },
+      userId,
+    });
+    return block && Array.isArray(block.data) ? block.data : [];
+  }
+
   registerRoutes(app) {
     const p = this.prefix;
     app.get(`${p}/page-config`, { config: { noAuth: true } }, (req, reply) => this.pageConfig(req, reply));
     app.get(`${p}/home-categories`, { config: { noAuth: true } }, (req, reply) => this.homeCategories(req, reply));
+    app.get(`${p}/category-items`, { config: { noAuth: true } }, (req, reply) => this.categoryItems(req, reply));
+    app.get(`${p}/category-articles`, { config: { noAuth: true } }, (req, reply) => this.categoryArticles(req, reply));
     app.get(`${p}/hub-article`, { config: { noAuth: true } }, (req, reply) => this.hubArticle(req, reply));
     app.post(`${p}/click`, { config: { noAuth: true } }, (req, reply) => this.click(req, reply));
     app.get(`${p}/test`, { config: { noAuth: true } }, (req, reply) => this.test(req, reply));
@@ -842,14 +887,8 @@ class NavigaHomeService extends BaseService {
     try {
       const params = this._params(req);
       const platform = params.platform ? String(params.platform).trim() : '';
-      const factory = require('../../factory');
-      const staticData = await factory.biz_home_staticRepo.Get({
-        strWhere: 'biz_home_static.type = :type and biz_home_static.platform = :platform and biz_home_static.is_new = :is_new',
-        strParams: { type: 'home', platform, is_new: 1 },
-      });
-      const baseCategories = staticData && Array.isArray(staticData.data)
-        ? staticData.data.map((item, index) => mapHomeCategoryItem(item, index))
-        : [];
+      const homeData = await this.getStaticBlock({ type: 'home', platform, userId: params.userId });
+      const baseCategories = homeData.map((item) => mapHomeCategoryItem(item));
       const colored = enrichHomeCategoriesListColors(baseCategories);
       const categories = enrichHomeCategoriesWithHubFeeds(colored);
       return R({ succeed: true, msg: '', data: { categories } });
@@ -859,6 +898,64 @@ class NavigaHomeService extends BaseService {
         msg: err.message || '加载首页分类区块失败',
         data: null,
       });
+    }
+  }
+
+  async categoryItems(req, reply) {
+    void reply;
+    try {
+      const params = this._params(req);
+      const platform = params.platform ? String(params.platform).trim() : '';
+      const categoryId = params.id != null && params.id !== '' ? String(params.id) : '';
+      if (!categoryId) {
+        return R({ succeed: false, msg: 'id不能为空', data: null });
+      }
+
+      const homeData = await this.getStaticBlock({ type: 'home', platform, userId: params.userId });
+      const baseCategories = homeData.map((item) => mapHomeCategoryItem(item));
+      const colored = enrichHomeCategoriesListColors(baseCategories);
+      const category = colored.find((item) => String(item.id) === categoryId);
+
+      return R({
+        succeed: true,
+        msg: '',
+        data: {
+          id: categoryId,
+          items: category ? (category.list || []) : [],
+        },
+      });
+    } catch (err) {
+      return R({ succeed: false, msg: err.message || '加载分类子项失败', data: null });
+    }
+  }
+
+  async categoryArticles(req, reply) {
+    void reply;
+    try {
+      const params = this._params(req);
+      const platform = params.platform ? String(params.platform).trim() : '';
+      const categoryId = params.id != null && params.id !== '' ? String(params.id) : '';
+      if (!categoryId) {
+        return R({ succeed: false, msg: 'id不能为空', data: null });
+      }
+
+      const homeData = await this.getStaticBlock({ type: 'home', platform, userId: params.userId });
+      const baseCategories = homeData.map((item) => mapHomeCategoryItem(item));
+      const category = baseCategories.find((item) => String(item.id) === categoryId);
+      const label = category && category.name ? String(category.name) : '推荐';
+      const articles = buildHubArticlesForCategory(categoryId, label);
+
+      return R({
+        succeed: true,
+        msg: '',
+        data: {
+          id: categoryId,
+          title: label,
+          items: articles,
+        },
+      });
+    } catch (err) {
+      return R({ succeed: false, msg: err.message || '加载分类文章失败', data: null });
     }
   }
 
@@ -894,38 +991,17 @@ class NavigaHomeService extends BaseService {
     try {
       const params = this._params(req);
       const platform = params.platform ? String(params.platform).trim() : '';
-      const factory = require('../../factory');
-      const staticData = await factory.biz_home_staticRepo.Get({
-        strWhere: 'biz_home_static.type = :type and biz_home_static.platform = :platform and biz_home_static.is_new = :is_new',
-        strParams: { type: 'top_menu', platform, is_new: 1 },
-      });
-      const menus = staticData && Array.isArray(staticData.data)
-        ? staticData.data.map((item, index) => mapTopMenuItem(item, index))
-        : [];
-      const allNavStaticData = await factory.biz_home_staticRepo.Get({
-        strWhere: 'biz_home_static.type = :type and biz_home_static.platform = :platform and biz_home_static.is_new = :is_new',
-        strParams: { type: 'all_nav', platform, is_new: 1 },
-      });
-      const searchEngineStaticData = await factory.biz_home_staticRepo.Get({
-        strWhere: 'biz_home_static.type = :type and biz_home_static.platform = :platform and biz_home_static.is_new = :is_new',
-        strParams: { type: 'search_engine', platform, is_new: 1 },
-      });
-      const hotSearchStaticData = await factory.biz_home_staticRepo.Get({
-        strWhere: 'biz_home_static.type = :type and biz_home_static.platform = :platform and biz_home_static.is_new = :is_new',
-        strParams: { type: 'hot_search', platform, is_new: 1 },
-      });
+      const [topMenuData, allNavData, searchEngineData, hotSearchData] = await Promise.all([
+        this.getStaticBlock({ type: 'top_menu', platform, userId: params.userId }),
+        this.getStaticBlock({ type: 'all_nav', platform, userId: params.userId }),
+        this.getStaticBlock({ type: 'search_engine', platform, userId: params.userId }),
+        this.getStaticBlock({ type: 'hot_search', platform, userId: params.userId }),
+      ]);
 
-      const searchEngines = searchEngineStaticData && Array.isArray(searchEngineStaticData.data)
-        ? searchEngineStaticData.data.map((item, index) => mapSearchEngineItem(item, index))
-        : [];
-
-      const hotSearchTags = hotSearchStaticData && Array.isArray(hotSearchStaticData.data)
-        ? hotSearchStaticData.data.map((item, index) => mapHotSearchTagItem(item, index))
-        : [];
-
-      const allNavPopover = allNavStaticData && Array.isArray(allNavStaticData.data)
-        ? allNavStaticData.data.map((item, index) => mapAllNavItem(item, index))
-        : [];
+      const menus = topMenuData.map((item) => mapMenuItem(item));
+      const searchEngines = searchEngineData.map((item) => mapSearchEngineItem(item));
+      const hotSearchTags = hotSearchData.map((item) => mapHotSearchTagItem(item));
+      const allNavPopover = allNavData.map((item) => mapNavItem(item));
 
       const data = { menus, allNavPopover, searchEngines, hotSearchTags };
       return R({ succeed: true, msg: '', data: data });
