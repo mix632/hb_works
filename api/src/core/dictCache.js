@@ -4,11 +4,19 @@ const { LRUCache } = require('lru-cache');
 
 class DictCache {
   constructor() {
-    this._cache = new LRUCache({ max: 500, ttl: 1000 * 60 * 5 });
+    this._cache = new LRUCache({ max: 500 });
     this._factories = {};
   }
 
   register(tableName, factory) { this._factories[tableName] = factory; }
+
+  async _loadOne(tableName) {
+    const factory = this._factories[tableName];
+    if (!factory) return [];
+    const rows = await factory.GetList({ isGetValue: false });
+    this._cache.set(tableName, rows);
+    return rows;
+  }
 
   async loadAll(log) {
     for (const [name, factory] of Object.entries(this._factories)) {
@@ -31,13 +39,25 @@ class DictCache {
 
   getAll(tableName) { return this._cache.get(tableName) || []; }
 
+  async getAllAsync(tableName) {
+    const rows = this._cache.get(tableName);
+    if (rows) return rows;
+    return this._loadOne(tableName);
+  }
+
+  async getTitleAsync(tableName, id, field = 'title') {
+    const rows = await this.getAllAsync(tableName);
+    const row = rows.find(e => e.id == id);
+    return row ? (row[field] || '') : '';
+  }
+
   invalidate(tableName) { this._cache.delete(tableName); }
 
   async reload(tableName) {
     const f = this._factories[tableName];
     if (!f) return;
     try {
-      this._cache.set(tableName, await f.GetList({ isGetValue: false }));
+      await this._loadOne(tableName);
     } catch { /* swallow */ }
   }
 }

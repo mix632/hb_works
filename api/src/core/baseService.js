@@ -224,7 +224,11 @@ class BaseService {
 
   async setFieldsAction(req, reply) {
     const params = this._params(req);
-    return this.myService.setFields({ id: params.id, values: params.fields, userId: params.userId });
+    const result = await this.myService.setFields({ id: params.id, values: params.fields, userId: params.userId });
+    if (dictCache && result && result.succeed) {
+      await dictCache.reload(this.myService.tableName);
+    }
+    return result;
   }
 
   async getSelect2Action(req, reply) {
@@ -256,6 +260,9 @@ class BaseService {
       dataValueName: params.dataValueName, idName: params.idName,
       valueName: params.valueName, userId: params.userId,
     });
+    if (dictCache) {
+      await dictCache.reload(this.myService.tableName);
+    }
     return R({ succeed: true });
   }
 
@@ -272,7 +279,11 @@ class BaseService {
 
   async swap(req, reply) {
     const params = this._params(req);
-    return await this.myService.swap({ models: params.newArray, userId: params.userId });
+    const result = await this.myService.swap({ models: params.newArray, userId: params.userId });
+    if (dictCache && result && result.succeed) {
+      await dictCache.reload(this.myService.tableName);
+    }
+    return result;
   }
 }
 

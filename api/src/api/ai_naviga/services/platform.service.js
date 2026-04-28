@@ -33,7 +33,7 @@ class PlatformService extends BaseService {
   }
 
   async platformOptions(req, reply) {
-    let rows = dictCache.getAll('biz_platform');
+    let rows = await dictCache.getAllAsync('biz_platform');
     const data = (rows || []).map((row) => ({
       value: row.id,
       label: row.title,
